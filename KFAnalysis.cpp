@@ -8,160 +8,470 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include <TCanvas.h>
+//TODO: the number of cuts is everywhere hardcoded
 
-void Rainbow_Plot(TH2D* [][5],TH2D* ,const char* [],float [],TFile*);
-void KFAnalysis()
+struct SHyperTriton3KF {
+  float px = -999.f;
+  float py = -999.f;
+  float pz = -999.f;
+  float l = -1.f;
+  float t = -1.f;
+  bool positive = false;
+};
+
+
+struct RHyperTriton3KF {
+  float px = -999.f;
+  float py = -999.f;
+  float pz = -999.f;
+  float l = -1.f;
+  float r = -1.f;
+  float chi2_deuprot = -1.f;
+  float chi2_3prongs = -1.f;
+  float chi2_topology = -1.f;
+  float cosPA = -1.f;
+  float m = -1;
+  Double32_t dca_de = 2.0; //[0.0,2.0,8]
+  Double32_t dca_pr = 2.0; //[0.0,2.0,8]
+  Double32_t dca_pi = 2.0; //[0.0,2.0,8]
+  Double32_t tpcNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t dca_de_pr = -4.0; //[0.0,2.0,8]
+  Double32_t dca_de_pi = -4.0; //[0.0,2.0,8]
+  Double32_t dca_pr_pi = -4.0; //[0.0,2.0,8]
+  bool hasTOF_de;
+  bool hasTOF_pr;
+  bool hasTOF_pi;
+  UChar_t tpcClus_de = 0u;
+  UChar_t tpcClus_pr = 0u;
+  UChar_t tpcClus_pi = 0u;
+};
+
+void SetEfficiencyErrors(TH1D* , TH1D* );
+void SetRateErrors(TH1D*, TH1D*);
+void Rainbow_Plot_Eff(TH2D* [][3][7][2],TH2D* [2],const char* [],float [],TFile*);
+void MassResolutionPlot(TH3D* [][3][7][2],const char* [],float [],TFile* rfile);
+
+void KFAnalysis(bool test=false)
 {
-    TChain mcChain("Hyp3KF");
-    mcChain.AddFile("HyperTritonTree3KF.root");
+  gStyle->SetOptStat(0);
+  gStyle->SetOptTitle(0);
+  const float mgen=2.99131;
+  TChain mcChain("Hyp3KF");
+  mcChain.AddFile("HyperTritonTree3KF.root");
 
-    TTreeReader fReader(&mcChain);
-    TTreeReaderArray<RHyperTriton3KF> RHyperVec = {fReader, "RHyperTriton"};
-    TTreeReaderArray<SHyperTriton3KF> SHyperVec = {fReader, "SHyperTriton"};
-    //TTreeReaderValue<RCollision> RColl = {fReader, "RCollision"};
+  TTreeReader fReader(&mcChain);
+  TTreeReaderArray<RHyperTriton3KF> RHyperVec = {fReader, "RHyperTriton"};
+  TTreeReaderArray<SHyperTriton3KF> SHyperVec = {fReader, "SHyperTriton"};
+  TTreeReaderArray<int> GenMapVec = {fReader, "SGenRecMap"};
+  //TTreeReaderValue<RCollision> RColl = {fReader, "RCollision"};
 
 
-    const int n_cut_dca = 5;
-    const int n_cut_chi2 = 5;
-    const char *lCutDCA[3]{"DCA_pd", "DCA_ppi","DCA_dpi"};
-    const char *lCutChi2[3]{"Chi2_deuprot","Chi2_3prongs","Chi2_topology"};
-    
-    TH1D* fHistChi[3];
-    TH1D* fHistDCA[3];
-    
-    for(int iCut=0; iCut<3; iCut++)
-    {
-      fHistChi[iCut] = new TH1D(Form("fHist%s",lCutChi2[iCut]),";#Chi^2",200,0,10);
-      fHistDCA[iCut] = new TH1D(Form("fHist%s",lCutDCA[iCut]),";DCA",200,0,2.2);
-    }
+  const int n_cut_dca = 7;
+  const int n_cut_chi2 = 7;
+  const char *lCutDCA[3]{"DCA_pd", "DCA_ppi","DCA_dpi"};
+  const char *lCutChi2[3]{"Chi2_deuprot","Chi2_3prongs","Chi2_topology"};
+  const char lAM[3]{"AM"};
 
-    TH2D* fHistGen = new TH2D("fHistGen",";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
-    TH2D* fHistEffDCA[3][n_cut_dca];
-    TH2D* fHistEffChi2[3][n_cut_chi2];
 
-    float cut_dca[]={0.,0.1,0.2,0.3,0.4};
-    float cut_chi2[]={0.,0.1,0.2,0.3,0.4};
-    //inizializzo gli istogrammi
+  TH1D* fHistChi[3];
+  TH1D* fHistDCA[3];
+  
+  for(int iCut=0; iCut<3; iCut++)
+  {
+    fHistChi[iCut] = new TH1D(Form("fHist%s",lCutChi2[iCut]),";#Chi^2",200,0,30);
+    fHistDCA[iCut] = new TH1D(Form("fHist%s",lCutDCA[iCut]),";DCA",200,0,2.2);
+  }
+
+  TH2D* fHistGen[2];
+  //[rec/clone][#kinds of cuts][#number of cuts][#matter]
+  TH2D* fHistEffDCA[2][3][n_cut_dca][2];
+  TH2D* fHistEffChi2[2][3][n_cut_chi2][2];
+  TH3D* fHistMassDCA[2][3][n_cut_dca][2];
+  TH3D* fHistMassChi2[2][3][n_cut_chi2][2];
+  TH2D* fHistResChi2[2][3][n_cut_chi2];
+  TH2D* fHistResDCA[2][3][n_cut_dca];
+
+  float cut_dca[]={0.05,0.4,0.6,0.8,1.,1.2,10.};
+  float cut_chi2[]={1.,1.5,2.,2.5,3.,3.5,50.};
+  //inizializzo gli istogrammi
+  for(int iMat=0; iMat<2; iMat++){
+    fHistGen[iMat] = new TH2D(Form("fHistGen_%c",lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
     for(int iCut=0; iCut<n_cut_dca; iCut++)
     {
-      for(int iPar=0; iPar<3;iPar++)
-        fHistEffDCA[iPar][iCut] = new TH2D(Form("fHistEff_%.1f_%s",cut_dca[iCut],lCutDCA[iPar]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+      for(int iPar=0; iPar<3;iPar++){
+        fHistEffDCA[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+        fHistEffDCA[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+      
+        fHistMassDCA[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+        fHistMassDCA[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+      
+        //fHistResDCA[iPar][iCut][iMat] = new TH2D(Form("fHistResDCA_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";#Deltap_{T} [GeV/c];#Deltact [cm]",100,-2,2,100,-10,10);          
+      }
     }
-
     for(int iCut=0; iCut<n_cut_chi2; iCut++)
     {
-      for(int iPar=0; iPar<3;iPar++)
-        fHistEffChi2[iPar][iCut] = new TH2D(Form("fHistEff_%.1f_%s",cut_chi2[iCut],lCutChi2[iPar]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+      for(int iPar=0; iPar<3;iPar++){
+        fHistEffChi2[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+        fHistEffChi2[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+        fHistMassChi2[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+        fHistMassChi2[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+        //fHistResChi2[iPar][iCut][iMat] = new TH2D(Form("fHistResChi2_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";#Deltap_{T} [GeV/c];#Deltact [cm]",100,-2,2,100,-10,10);          
+      }
     }
-    //leggo i file e riempio gli istogrammi
-    while (fReader.Next())
+  }
+
+  //leggo i file e riempio gli istogrammi
+  int ir=0;
+  float pt,ptgen,ctgen;
+  int clone,charge;
+  int it=0;
+  while (fReader.Next())
+  {
+    if(test){
+      it++;
+      if(it==10000)
+        break;
+    }
+    for (auto &SHyper : SHyperVec)
     {
-      for (auto &SHyper : SHyperVec)
-      {
-        fHistGen->Fill(TMath::Sqrt(SHyper.px*SHyper.px+SHyper.px*SHyper.px),SHyper.l);
+      fHistGen[SHyper.positive]->Fill(TMath::Sqrt(SHyper.px*SHyper.px+SHyper.py*SHyper.py),SHyper.l);
+    }
+    
+      
+    ir=0;
+    vector<int> OldMap;
+    for (auto &RHyper : RHyperVec)
+    {
+      clone=0;
+      for(auto t:OldMap){
+        if(GenMapVec[ir]==t)
+          clone=1;
       }
+      OldMap.push_back(GenMapVec[ir]);
+      charge = (SHyperVec[GenMapVec[ir]].positive) ? 1 : 0;
+      ptgen = TMath::Sqrt(SHyperVec[GenMapVec[ir]].px*SHyperVec[GenMapVec[ir]].px+SHyperVec[GenMapVec[ir]].py*SHyperVec[GenMapVec[ir]].py);
+      ctgen = SHyperVec[GenMapVec[ir]].l;
 
-      for (auto &RHyper : RHyperVec)
+      ir++;
+      double dca[3]={RHyper.dca_de_pr,RHyper.dca_de_pi,RHyper.dca_pr_pi};
+      double chi2[3]={RHyper.chi2_deuprot,RHyper.chi2_3prongs,RHyper.chi2_topology}; 
+      bool no=false;
+      for(int iCut=0; iCut<3; iCut++)
       {
-
-        double dca[3]={RHyper.dca_de_pr,RHyper.dca_de_pi,RHyper.dca_pr_pi};
-        double chi2[3]={RHyper.chi2_deuprot,RHyper.chi2_3prongs,RHyper.chi2_topology}; 
-
-        for(int iCut=0; iCut<3; iCut++)
+        fHistChi[iCut]->Fill(chi2[iCut]);
+        fHistDCA[iCut]->Fill(dca[iCut]);
+        if(chi2[iCut]>10 || dca[iCut]>0.05)
+          no=true;
+      }
+      //messo come test per il selector
+      bool t[3];
+      t[0]=RHyper.dca_de>0.05 && RHyper.dca_pr>0.05 && RHyper.dca_pi>0.05;
+      t[1]=TMath::Abs(RHyper.tpcNsig_de)<3. && TMath::Abs(RHyper.tpcNsig_pr)<3. && TMath::Abs(RHyper.tpcNsig_pi)<3.;
+      t[2]=RHyper.cosPA>0.99;
+      //t[3]=RHyper.tpcClus_de>0. && RHyper.tpcClus_pi>0. && RHyper.tpcClus_pr>0.;
+      bool tot = true;
+      for(int i=0;i<4;i++){
+        tot= tot && t[i];
+        //cout<<i<<" "<<t[i]<<endl;
+      }
+      if(tot){
+      pt = TMath::Sqrt(RHyper.px*RHyper.px+RHyper.py*RHyper.py);
+      for(int cut=0; cut<n_cut_dca; cut++)
+      {
+        for(int iPar=0; iPar<3;iPar++)
         {
-          fHistChi[iCut]->Fill(chi2[iCut]);
-          fHistDCA[iCut]->Fill(dca[iCut]);
-        }
-
-        for(int cut=0; cut<n_cut_dca; cut++)
-        {
-          for(int iPar=0; iPar<3;iPar++)
-          {
-            if(dca[iPar]<cut_dca[cut])
-              fHistEffDCA[iPar][cut]->Fill(TMath::Sqrt(RHyper.px*RHyper.px+RHyper.px*RHyper.px),RHyper.l);
+          if(dca[iPar]<cut_dca[cut]){
+            fHistEffDCA[clone][iPar][cut][charge]->Fill(ptgen,ctgen);
+            fHistMassDCA[clone][iPar][cut][charge]->Fill(ptgen,ctgen,RHyper.m-mgen);
+            //if(clone==0)
+              //fHistResDCA[iPar][cut][charge]->Fill(pt-ptgen,RHyper.l-ctgen);
           }
         }
-        
-        for(int cut=0; cut<n_cut_chi2; cut++)
+      }
+      for(int cut=0; cut<n_cut_chi2; cut++)
+      {
+        for(int iPar=0; iPar<3;iPar++)
         {
-          for(int iPar=0; iPar<3;iPar++)
-          {
-            if(chi2[iPar]<cut_dca[cut])
-              fHistEffChi2[iPar][cut]->Fill(TMath::Sqrt(RHyper.px*RHyper.px+RHyper.px*RHyper.px),RHyper.l);
+          if(chi2[iPar]<cut_chi2[cut]){
+            fHistEffChi2[clone][iPar][cut][charge]->Fill(ptgen,ctgen);
+            fHistMassChi2[clone][iPar][cut][charge]->Fill(ptgen,ctgen,RHyper.m-mgen);
+            //if(clone==0)
+            //  fHistResChi2[iPar][cut][charge]->Fill(pt-ptgen,RHyper.l-ctgen);
           }
         }
       }
-
+      }
     }
 
+  }
 
   TFile* rfile = new TFile("KFResults.root","RECREATE");
-  rfile->Write();
-  Rainbow_Plot(fHistEffChi2,fHistGen,lCutChi2,cut_chi2,rfile);
-  Rainbow_Plot(fHistEffDCA,fHistGen,lCutDCA,cut_dca,rfile);
+  rfile->cd();
+  for(int iCut=0; iCut<3; iCut++)
+  {
+    fHistChi[iCut]->Write();
+    fHistDCA[iCut]->Write();
+  }
+  //salvare istogrammi di massa
+  for(int iMat=0; iMat<2; iMat++){
+    for(int iCut=0; iCut<n_cut_dca; iCut++)
+    {
+      for(int iPar=0; iPar<3;iPar++){
+        //fHistResDCA[iPar][iCut][iMat]->Write();
+      }
+    }
+    for(int iCut=0; iCut<n_cut_chi2; iCut++)
+    {
+      for(int iPar=0; iPar<3;iPar++){
+        //fHistResChi2[iPar][iCut][iMat]->Write();
+      }
+    }
+  }
+  
+  Rainbow_Plot_Eff(fHistEffChi2,fHistGen,lCutChi2,cut_chi2,rfile);
+  Rainbow_Plot_Eff(fHistEffDCA,fHistGen,lCutDCA,cut_dca,rfile);
+  
+  MassResolutionPlot(fHistMassChi2,lCutChi2,cut_chi2,rfile);
+  MassResolutionPlot(fHistMassDCA,lCutDCA,cut_dca,rfile);
+  
     
 }
 
-void Rainbow_Plot(TH2D* fHistRec[][5],TH2D* fHistGen,const char* lVar[],float cut[],TFile* rfile)
+void Rainbow_Plot_Eff(TH2D* fHistRec[][3][7][2],TH2D* fHistGen[2],const char* lVar[],float cut[],TFile* rfile)
 {
 
+  const char *lClone[2]{"Eff", "Clone"};
+  const char *lYLabel[2]{"efficiency", "#clone/#gen"};
+  const char lAM[3]{"AM"};
+  const char *lProj[2]{"Pt", "Ct"};
+  const float lYRange[2][2]={{0,1.},{0.,0.015}};
   rfile->ReOpen("UPDATE");
-  //file where results will be saved
   
   //proiezioni e divisioni
   TH1D* fHistEff;
   TH1D* fHistGenProj;
-  TCanvas RainbowPt("","");
-  TCanvas RainbowCt("","");
+  TCanvas Rainbow("","");
 
+  TCanvas MultiRainbow("","",1200,400);
+  MultiRainbow.Divide(2,1);
+
+  TLegend *leg=new TLegend(0.2,0.2,0.5,0.5);
   //faccio le proiezioni e calcolo le efficienze
-  for(int iPar=0; iPar<3;iPar++)
+  
+  for(int iMat=0; iMat<2;iMat++)
   {
-    for(int iCut=0; iCut<5; iCut++)
+    for(int iPar=0; iPar<3;iPar++)
     {
-      //ct
-      fHistEff = (TH1D*) fHistRec[iPar][iCut]->ProjectionY(Form("fHistEff_Ct_%s_%.1f",lVar[iPar],cut[iCut]),1,fHistRec[iPar][iCut]->GetNbinsY());  
-      fHistGenProj = (TH1D*) fHistGen->ProjectionY("fHistGenProj",1,fHistGen->GetNbinsY());  
+      //pt or ct
+      for(int iProj=0; iProj<2; iProj++)
+      {
+        //eff or rate
+        for(int iHist=0; iHist<2;iHist++)
+        {
+          //cuts
+          for(int iCut=0; iCut<7; iCut++)
+          {
+            if(iProj==0){
+              fHistEff = (TH1D*) fHistRec[iHist][iPar][iCut][iMat]->ProjectionX(Form("fHist%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),1,fHistRec[iHist][iPar][iCut][iMat]->GetNbinsX());  
+              fHistGenProj = (TH1D*) fHistGen[iMat]->ProjectionX("fHistGenProj",1,fHistGen[iMat]->GetNbinsX());
+            }
+            else{
+              fHistEff = (TH1D*) fHistRec[iHist][iPar][iCut][iMat]->ProjectionY(Form("fHist%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),1,fHistRec[iHist][iPar][iCut][iMat]->GetNbinsY());  
+              fHistGenProj = (TH1D*) fHistGen[iMat]->ProjectionY("fHistGenProj",1,fHistGen[iMat]->GetNbinsY());
+            }
 
-      fHistEff->SetMarkerStyle(8);
-      fHistEff->Divide(fHistGenProj);
-      fHistEff->GetYaxis()->SetTitle("efficiency");
-      rfile->cd();
-      fHistEff->Write();
-      RainbowCt.cd();
-      if(iCut==0)
-        fHistEff->Draw("PMC PLC");
-      else
-        fHistEff->Draw("SAME PMC PLC");
+            fHistEff->SetTitle(Form("%s < %.1f",lVar[iPar],cut[iCut]));
+            fHistEff->SetMarkerStyle(8);
+            fHistEff->Divide(fHistGenProj);
 
-      //pt
-      fHistEff = (TH1D*) fHistRec[iPar][iCut]->ProjectionX(Form("fHistEff_Pt_%s_%.1f",lVar[iPar],cut[iCut]),1,fHistRec[iPar][iCut]->GetNbinsX());  
-      fHistGenProj = (TH1D*) fHistGen->ProjectionX("fHistGenProj",1,fHistGen->GetNbinsX());  
+            if(iHist==0)
+              SetEfficiencyErrors(fHistEff,fHistGenProj);
+            else
+              SetRateErrors(fHistEff,fHistGenProj);
 
-      fHistEff->SetMarkerStyle(8);
-      fHistEff->Divide(fHistGenProj);
-      fHistEff->GetYaxis()->SetTitle("efficiency");
-      rfile->cd();
-      fHistEff->Write();
-      RainbowPt.cd();
-      if(iCut==0)
-        fHistEff->Draw("PMC PLC");
-      else
-        fHistEff->Draw("SAME PMC PLC");
+            fHistEff->GetYaxis()->SetRangeUser(lYRange[iHist][0],lYRange[iHist][1]);
+            fHistEff->GetYaxis()->SetTitle(lYLabel[iHist]);
 
+            rfile->cd();
+            fHistEff->Write();
+            Rainbow.cd();
+            if(iCut==0)
+              fHistEff->Draw("PMC PLC");
+            else
+              fHistEff->Draw("SAME PMC PLC");
+            //draw in the divided canvas
+            
+            MultiRainbow.cd(iHist+1);
+            if(iCut==0)
+              fHistEff->Draw("PMC PLC");
+            else
+              fHistEff->Draw("SAME PMC PLC");
+              
+            if(iHist==0)
+              leg->AddEntry(fHistEff,fHistEff->GetTitle(),"lp");
+
+          }
+          //dca/chi2_taglio
+          Rainbow.SetName(Form("RainbowPlot%s_%s_%s_%c",lClone[iHist],lProj[iProj],lVar[iPar],lAM[iMat])); 
+          Rainbow.BuildLegend();
+          rfile->cd();
+          Rainbow.Write();
+        
+        }
+        leg->SetTextFont(132);
+        MultiRainbow.SetName(Form("MultiRainbowPlot%s_%s_%c",lProj[iProj],lVar[iPar],lAM[iMat])); 
+        MultiRainbow.cd(1);
+        leg->Draw();
+        MultiRainbow.Write();
+        leg->Clear();
+      }
     }
-    //dca/chi2_taglio
-    RainbowCt.SetName(Form("RainbowPlotCt_%s",lVar[iPar])); 
-    RainbowCt.BuildLegend();
-
-    RainbowPt.SetName(Form("RainbowPlotPt_%s",lVar[iPar])); 
-    RainbowPt.BuildLegend();
-
-    rfile->cd();
-
-    RainbowPt.Write();
-    RainbowCt.Write();
-    
   }
+}
 
+void MassResolutionPlot(TH3D* fHistRec[][3][7][2],const char* lVar[],float cut[],TFile* rfile)
+{
+
+  const char *lClone[2]{"Rec", "Clone"};
+  const char lAM[3]{"AM"};
+  const char *lProj[2]{"Pt", "Ct"};
+  const char *lProjSet[2]{"zx", "zy"};
+  rfile->ReOpen("UPDATE");
+  
+  //proiezioni e divisioni
+  TH1D* fHistRes;
+  TH2D* fHistProto;
+  TH1D* fAverage;
+  TH1D* fStdDev;
+  TCanvas Rainbow("","");
+  TCanvas RainbowAve("","");
+  TCanvas RainbowStd("","");
+
+  TCanvas MultiRainbow("","",1200,400);
+  MultiRainbow.Divide(2,1);
+
+  TLegend *leg=new TLegend(0.2,0.2,0.5,0.5);
+  //faccio le proiezioni e calcolo le efficienze
+  
+  for(int iMat=0; iMat<2;iMat++)
+  {
+    for(int iPar=0; iPar<3;iPar++)
+    {
+      for(int iHist=0; iHist<2; iHist++)
+      {
+        //pt or ct
+        for(int iProj=0; iProj<2; iProj++)
+        {
+          //cuts
+          for(int iCut=0; iCut<7; iCut++)
+          {
+            fHistProto = (TH2D*) fHistRec[iHist][iPar][iCut][iMat]->Project3D(lProjSet[iProj]);
+
+            if(iProj==0){
+              fAverage = new TH1D(Form("fAverage%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),";pT [GeV/c];#mu [GeV/c^2]",fHistProto->GetNbinsX(),0,fHistProto->GetXaxis()->GetBinLowEdge(fHistProto->GetNbinsX()+1));
+              fStdDev = new TH1D(Form("fStdDev%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),";pT [GeV/c];#sigma [GeV/c^2]",fHistProto->GetNbinsX(),0,fHistProto->GetXaxis()->GetBinLowEdge(fHistProto->GetNbinsX()+1));
+            }
+            else{
+              fAverage = new TH1D(Form("fAverage%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),";ct [cm];#mu [GeV/c^2]",fHistProto->GetNbinsX(),0,fHistProto->GetXaxis()->GetBinLowEdge(fHistProto->GetNbinsX()+1));
+              fStdDev = new TH1D(Form("fStdDev%s_%s_%s_%.1f_%c",lClone[iHist],lProj[iProj],lVar[iPar],cut[iCut],lAM[iMat]),";ct [cm];#sigma [GeV/c^2]",fHistProto->GetNbinsX(),0,fHistProto->GetXaxis()->GetBinLowEdge(fHistProto->GetNbinsX()+1));
+            }
+            
+            for(int iBin=1;iBin<=fHistProto->GetNbinsX();iBin++){
+              fHistRes  = (TH1D*) fHistProto->ProjectionY("fHistGenProj",iBin,iBin);
+              fAverage->SetBinContent(iBin,fHistRes->GetMean());
+              fStdDev->SetBinContent(iBin,fHistRes->GetStdDev());
+              fAverage->SetBinError(iBin,fHistRes->GetMeanError());
+              fStdDev->SetBinError(iBin,fHistRes->GetStdDevError());
+            }
+
+            fAverage->SetTitle(Form("%s < %.1f",lVar[iPar],cut[iCut]));
+            fStdDev->SetTitle(Form("%s < %.1f",lVar[iPar],cut[iCut]));
+
+            if(iCut==6){
+              float deltaAv = fAverage->GetMaximum()-fAverage->GetMinimum();
+              float deltaStd = fStdDev->GetMaximum()-fStdDev->GetMinimum();
+
+              fAverage->GetYaxis()->SetRangeUser(fAverage->GetMinimum()-deltaAv,fAverage->GetMaximum()+deltaAv);
+              fStdDev->GetYaxis()->SetRangeUser(fStdDev->GetMinimum()-deltaStd,fStdDev->GetMaximum()+deltaStd);
+            }
+
+            fAverage->SetMarkerStyle(8);
+            fStdDev->SetMarkerStyle(8);
+            rfile->cd();
+            fAverage->Write();
+            fStdDev->Write();
+
+            RainbowAve.cd();
+            if(iCut==0)
+              fAverage->Draw("PMC PLC");
+            else
+              fAverage->Draw("SAME PMC PLC");
+            RainbowStd.cd();
+            if(iCut==0)
+              fStdDev->Draw("PMC PLC");
+            else
+              fStdDev->Draw("SAME PMC PLC");
+            //draw in the divided canvas
+            MultiRainbow.cd(1);
+            if(iCut==0)
+              fAverage->Draw("PMC PLC");
+            else
+              fAverage->Draw("SAME PMC PLC");
+            MultiRainbow.cd(2);
+            if(iCut==0)
+              fStdDev->Draw("PMC PLC");
+            else
+              fStdDev->Draw("SAME PMC PLC");
+              
+            leg->AddEntry(fStdDev,fStdDev->GetTitle(),"lp");
+          }
+
+          RainbowAve.SetName(Form("RainbowPlotAverage%s_%s_%s_%c",lClone[iHist],lProj[iProj],lVar[iPar],lAM[iMat])); 
+          RainbowAve.BuildLegend();
+          RainbowStd.SetName(Form("RainbowPlotStd%s_%s_%s_%c",lClone[iHist],lProj[iProj],lVar[iPar],lAM[iMat])); 
+          RainbowStd.BuildLegend();
+          rfile->cd();
+          RainbowAve.Write();
+          RainbowStd.Write();
+          leg->SetTextFont(132);
+          MultiRainbow.SetName(Form("MultiRainbowPlotMass%s_%s_%s_%c",lClone[iHist],lProj[iProj],lVar[iPar],lAM[iMat])); 
+          MultiRainbow.cd(1);
+          leg->Draw();
+          MultiRainbow.Write();
+          leg->Clear();
+        }
+      }
+    }
+  }
+}
+
+void SetEfficiencyErrors(TH1D* HistEff, TH1D* HistGen){
+  for(int iBin=1; iBin<=HistEff->GetNbinsX(); iBin++){
+    double gen = HistGen->GetBinContent(iBin);
+    double eff = HistEff->GetBinContent(iBin);
+    if(gen!=0)
+      HistEff->SetBinError(iBin,TMath::Sqrt(eff*(1-eff)/gen));
+    else{
+      HistEff->SetBinError(iBin,0);
+      HistEff->SetBinContent(iBin,1);
+    }
+  }
+}
+
+void SetRateErrors(TH1D* HistRate, TH1D* HistGen){
+  for(int iBin=1; iBin<=HistRate->GetNbinsX(); iBin++){
+    double gen = HistGen->GetBinContent(iBin);
+    double rate = HistRate->GetBinContent(iBin);
+    if(gen!=0)
+      HistRate->SetBinError(iBin,TMath::Sqrt(rate/gen));
+    else{
+      HistRate->SetBinError(iBin,0);
+      HistRate->SetBinContent(iBin,-1);
+    }
+  }
 }

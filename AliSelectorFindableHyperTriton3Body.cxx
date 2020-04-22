@@ -33,6 +33,9 @@
 
 
 const float kHypMass = 2.99131;
+const float kDeuMass{1.87561};
+const float kPMass{0.938272};
+const float kPiMass{0.13957};
 /// usefull functions
 
 template <typename T> double Sq(T a) { return a * a; }
@@ -88,23 +91,28 @@ void AliSelectorFindableHyperTriton3Body::SlaveBegin(TTree * /*tree*/){
 
   /// histograms for efficiencies
   for(int iMatter=0; iMatter<2; iMatter++){
-    fHistCtRec[iMatter] = new TH1D(Form("fHistCtRec%c",lAM[iMatter]),";;",10,0,100);
-    fHistX[iMatter] = new TH1D(Form("fHistX%c",lAM[iMatter]),";;",100,-50,50);
-    fHistY[iMatter] = new TH1D(Form("fHistY%c",lAM[iMatter]),";;",100,-50,50);
-    fHistZ[iMatter] = new TH1D(Form("fHistZ%c",lAM[iMatter]),";;",100,-50,50);
+    fHistCtRec[iMatter] = new TH1D(Form("fHistCtRec%c",lAM[iMatter]),";;",10,0,50);
+
+    fHistMassResPt[iMatter] = new TH2D(Form("fHistMassRes_%s_%c",lProj[0], lAM[iMatter]), ";#it{m_{rec}}-#it{m_{gen}} (dp#pi) (GeV/#it{c}^{2});#it{p}_{T} (GeV/#it{c});", 100,-0.05, 0.05, 10, 0, 10);
+    fHistMassResCt[iMatter] = new TH2D(Form("fHistMassRes_%s_%c",lProj[1], lAM[iMatter]), ";#it{m_{rec}}-#it{m_{gen}} (dp#pi) (GeV/#it{c}^{2}); #it{c}t (cm);", 100, -0.05, 0.05, 10, 0, 50);
+    fHistPtResPt[iMatter] = new TH2D(Form("fHistPtRes_pT_%c", lAM[iMatter]), ";#it{p}_{Trec}-#it{p}_{Tgen} (GeV/#it{c});#it{p}_{T} (GeV/#it{c});", 200, -0.5, 0.5, 10, 0, 10);
+    fHistCtResCt[iMatter] = new TH2D(Form("fHistCtRes_ct_%c", lAM[iMatter]), ";#it{c}t_{rec}-#it{c}t_{gen} (cm); #it{c}t (cm);", 200, -10., 10., 10, 0, 50);
+    
+    GetOutputList()->Add(fHistMassResPt[iMatter]);
+    GetOutputList()->Add(fHistMassResCt[iMatter]);
+    GetOutputList()->Add(fHistPtResPt[iMatter]);
+    GetOutputList()->Add(fHistCtResCt[iMatter]);
+
+    GetOutputList()->Add(fHistCtRec[iMatter]);
 
     for(int iVar=0; iVar<kNVar; iVar++){
-      fHistFakeVsCuts[iVar][iMatter] = new TH3D(Form("fHistFake_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,100.,kNCut,0,kNCut);
-      fHistClonesVsCuts[iVar][iMatter] = new TH3D(Form("fHistClones_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,100.,kNCut,0,kNCut);
+      fHistFakeVsCuts[iVar][iMatter] = new TH3D(Form("fHistFake_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,50.,kNCut,0,kNCut);
+      fHistClonesVsCuts[iVar][iMatter] = new TH3D(Form("fHistClones_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,50.,kNCut,0,kNCut);
      
-      fHistSingleRecVsCuts[iVar][iMatter] = new TH3D(Form("fHistRec_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,100.,kNCut,0,kNCut);
-      fHistGenVsCuts[iVar][iMatter] = new TH3D(Form("fHistGen_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,100.,kNCut,0,kNCut);
+      fHistSingleRecVsCuts[iVar][iMatter] = new TH3D(Form("fHistRec_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,50.,kNCut,0,kNCut);
+      fHistGenVsCuts[iVar][iMatter] = new TH3D(Form("fHistGen_%s_%c",lVarName[iVar],lAM[iMatter]),";#it{p}_{T} (GeV/#it{c});#it{ct} (cm);",kNBinPt,0.,10.,kNBinCt,0.,50.,kNCut,0,kNCut);
       fHistResolutionVsCuts[iVar][iMatter] = new TH3D(Form("fHistRes_%s_%c",lVarName[iVar],lAM[iMatter]),";#Delta#it{p}_{T} (GeV/#it{c});#Delta#it{ct} (cm);",100,-2.,2.,100,-15.,15.,kNCut,0,kNCut);
       
-      fHistMassRes[iVar][0][iMatter] = new TH3D(Form("fHistMassRes_%s_%s_%c",lVarName[iVar],lProj[0], lAM[iMatter]), ";#Delta#it{m} (dp#pi) (GeV/#it{c}^{2});#it{p}_{T} (GeV/#it{c});", 100, 2.95-kHypMass, 3.05-kHypMass, 10, 0, 10, kNCut,0,kNCut);
-      GetOutputList()->Add(fHistMassRes[iVar][0][iMatter]);
-      fHistMassRes[iVar][1][iMatter] = new TH3D(Form("fHistMassRes_%s_%s_%c",lVarName[iVar],lProj[1], lAM[iMatter]), ";#Delta#it{m} (dp#pi) (GeV/#it{c}^{2}); #it{c}t [cm];", 100, 2.95-kHypMass, 3.05-kHypMass, 10, 0, 100, kNCut,0,kNCut);
-      GetOutputList()->Add(fHistMassRes[iVar][1][iMatter]);
 
       GetOutputList()->Add(fHistSingleRecVsCuts[iVar][iMatter]);
       GetOutputList()->Add(fHistGenVsCuts[iVar][iMatter]);    
@@ -113,10 +121,6 @@ void AliSelectorFindableHyperTriton3Body::SlaveBegin(TTree * /*tree*/){
       GetOutputList()->Add(fHistFakeVsCuts[iVar][iMatter]);
       GetOutputList()->Add(fHistClonesVsCuts[iVar][iMatter]);
     }
-      GetOutputList()->Add(fHistCtRec[iMatter]);
-      GetOutputList()->Add(fHistX[iMatter]);
-      GetOutputList()->Add(fHistY[iMatter]);
-      GetOutputList()->Add(fHistZ[iMatter]);
   }
 
   /// Histograms for selection
@@ -290,7 +294,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
   //------------------------------------------------------------
   
 
-
+  //TODO: spostare dopo
   if(AcceptCandidate(0,0)){
     fHistInvMassPtSel[lCharge][1]->Fill(lHypMassRec,lHypPtRec);
     for(int iTrack = 0; iTrack < 3; iTrack++){
@@ -312,10 +316,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
   RParticles lCollection;
   RHyperTritonO2 recHyp;
   if(fAlg==0){
-    if(!KFVertexer(lTrack, lCollection, 0)) return true;
-    fHistX[lCharge]->Fill(lCollection.hypertriton.X()-lTrueDecayVtx[0]);
-    fHistY[lCharge]->Fill(lCollection.hypertriton.Y()-lTrueDecayVtx[1]);
-    fHistZ[lCharge]->Fill(lCollection.hypertriton.Z()-lTrueDecayVtx[2]);
+    if(!KFVertexer(lTrack, lCollection)) return true;
   }
   else if(fAlg==1){
     if(!O2Vertexer(lTrack, recHyp, lRecPrimaryVtx)) return true;
@@ -324,9 +325,63 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     if(!fHypertritonVertexer.FindDecayVertex(lTrack[0], lTrack[1], lTrack[2], lMagField)) return true;
   }
 
+  
+  float lHypCtRec;
+  AliESDVertex *lDecayVertex;
+  TVector3 vRecDecayLenght;
+  KFPVertex kfPVertex;
+  float cospa,vert[3];
+
+  //the cut on the cosPA is applied only to the histograms to compute efficiency and resolution
+  if(fAlg==2){  
+    lDecayVertex = static_cast<AliESDVertex *>(fHypertritonVertexer.GetCurrentVertex());   
+    lDecayVertex->GetXYZ(lRecDecayVtx);
+    for (int iCoord = 0; iCoord < 3; iCoord++) {
+      fHistResDecayVtx[iCoord]->Fill((lRecDecayVtx[iCoord] - lTrueDecayVtx[iCoord]) * 10.);
+      lRecDecayLenght[iCoord] = lRecDecayVtx[iCoord] - lRecPrimaryVtx[iCoord];
+    }
+    vRecDecayLenght = TVector3(lRecDecayLenght[0], lRecDecayLenght[1], lRecDecayLenght[2]);
+    lHypCtRec = vRecDecayLenght.Mag()*kHypMass/lLVhyp.P();
+    fHistCtRec[lCharge]->Fill(lHypCtRec);
+  }
+  else if(fAlg==0){
+    vert[0]=lCollection.hypertriton.X();
+    vert[1]=lCollection.hypertriton.Y();
+    vert[2]=lCollection.hypertriton.Z();
+    
+    ROOT::Math::XYZVectorF decayVtx{vert[0]-lRecPrimaryVtx[0], vert[1]-lRecPrimaryVtx[0], vert[2]-lRecPrimaryVtx[0]};
+    ROOT::Math::XYZVectorF mom{lCollection.hypertriton.Px(), lCollection.hypertriton.Py(), lCollection.hypertriton.Pz()};
+    cospa = mom.Dot(decayVtx) / std::sqrt(decayVtx.Mag2() * mom.Mag2());
+    
+    kfPVertex.SetXYZ(lRecPrimaryVtx[0],lRecPrimaryVtx[1],lRecPrimaryVtx[2]);
+    KFParticle prodVertex{kfPVertex};
+    lHypPtRec = TMath::Sqrt(lCollection.hypertriton.Px()*lCollection.hypertriton.Px()+lCollection.hypertriton.Py()*lCollection.hypertriton.Py());
+    float Ptot=TMath::Sqrt(lCollection.hypertriton.Px()*lCollection.hypertriton.Px()+lCollection.hypertriton.Py()*lCollection.hypertriton.Py()+lCollection.hypertriton.Pz()*lCollection.hypertriton.Pz());
+    //TODO: controllare sta roba
+    lHypCtRec = std::sqrt(decayVtx.Mag2());
+    lHypCtRec = lHypCtRec*kHypMass/Ptot;
+    lCollection.hypertriton.SetProductionVertex(prodVertex); 
+    //lHypCtRec = lCollection.hypertriton.S()*kHypMass;
+    fHistCtRec[lCharge]->Fill(lHypCtRec);
+  }
+  else{
+    fHistCtRec[lCharge]->Fill(recHyp.ct);
+    lHypMassRec=recHyp.m;
+    lHypCtRec=recHyp.ct;
+    lHypPtRec=recHyp.pt;
+  }
+
   if(AcceptCandidate(0,0)){
     //lHypPt is the same for everyone?
     fHistInvMassPtSel[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
+
+    if(fNclones==0){
+      fHistMassResPt[lCharge]->Fill(lHypMassRec-kHypMass,lHypPtGen);
+      fHistMassResCt[lCharge]->Fill(lHypMassRec-kHypMass,lHypCtGen);
+      fHistPtResPt[lCharge]->Fill(lHypPtRec-lHypPtGen,lHypPtGen);
+      fHistCtResCt[lCharge]->Fill(lHypCtRec-lHypCtGen,lHypCtGen);
+    }
+
     for(int iTrack = 0; iTrack < 3; iTrack++){
       fHistDaughterPt[iTrack][2]->Fill(lDaughterPt[iTrack]);
       fHistNclsITS[iTrack][2]->Fill(lDaughterNclsITS[iTrack]);
@@ -336,46 +391,88 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
       fHistDaughterTPCchi2[iTrack][2]->Fill(lDaughterChi2TPC[iTrack]);
       fHistDaughterITSchi2[iTrack][2]->Fill(lDaughterChi2ITS[iTrack]);
     }
-  }
-  
-  float lHypCtRec;
-  AliESDVertex *lDecayVertex;
-  TVector3 vRecDecayLenght;
-  KFPVertex kfPVertex;
-  
+    //
+    fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
 
-  if(fAlg==2){  
-    lDecayVertex = static_cast<AliESDVertex *>(fHypertritonVertexer.GetCurrentVertex());   
-    lDecayVertex->GetXYZ(lRecDecayVtx);
-    for (int iCoord = 0; iCoord < 3; iCoord++) {
-      fHistResDecayVtx[iCoord]->Fill((lRecDecayVtx[iCoord] - lTrueDecayVtx[iCoord]) * 10.);
-      lRecDecayLenght[iCoord] = lRecDecayVtx[iCoord] - lRecPrimaryVtx[iCoord];
+    //this part is not implemented for the o2
+    if(fAlg==0){
+      ROOT::Math::XYZVectorF decayVtx{vert[0]-lRecPrimaryVtx[0], vert[1]-lRecPrimaryVtx[0], vert[2]-lRecPrimaryVtx[0]};
+      ROOT::Math::XYZVectorF mom{lCollection.hypertriton.Px(), lCollection.hypertriton.Py(), lCollection.hypertriton.Pz()};
+      cospa = mom.Dot(decayVtx) / std::sqrt(decayVtx.Mag2() * mom.Mag2());
+      //TODO::sbagliato
+      float dec_vertex[3] = {lCollection.hypertriton.X(), lCollection.hypertriton.Y(), lCollection.hypertriton.Z()};
+      double dcaXY[3],dca[3],dcaPP[3];
+      dcaXY[0] = lCollection.deuteron.GetDistanceFromVertexXY(dec_vertex);
+      dca[0] = lCollection.deuteron.GetDistanceFromVertex(dec_vertex);
+      dcaXY[1] = lCollection.proton.GetDistanceFromVertexXY(dec_vertex);
+      dca[1] = lCollection.proton.GetDistanceFromVertex(dec_vertex);
+      dcaXY[2] = lCollection.pion.GetDistanceFromVertexXY(dec_vertex);
+      dca[2] = lCollection.pion.GetDistanceFromVertex(dec_vertex);
+
+      dcaPP[0] = lCollection.deuteron.GetDistanceFromParticle(lCollection.proton);
+      dcaPP[1] = lCollection.pion.GetDistanceFromParticle(lCollection.deuteron);
+      dcaPP[2] = lCollection.pion.GetDistanceFromParticle(lCollection.proton);
+      //still to check the units
+      for(int iPar=0; iPar<3; iPar++){
+        fHistDCA2dvXY[iPar]->Fill(dcaXY[iPar]);
+        fHistDCA2dvZ[iPar]->Fill(TMath::Sqrt(dca[iPar]*dca[iPar]-dcaXY[iPar]*dcaXY[iPar]));
+        fHistDCA2dv[iPar]->Fill(dca[iPar]);
+        fHistTrackDistance[iPar]->Fill(dcaPP[iPar]);
+      }
+      fHistVertexChi2->Fill(lCollection.hypertriton.GetChi2()/lCollection.hypertriton.GetNDF());
     }
-    fHistX[lCharge]->Fill(lRecDecayVtx[0]-lTrueDecayVtx[0]);
-    fHistY[lCharge]->Fill(lRecDecayVtx[1]-lTrueDecayVtx[1]);
-    fHistZ[lCharge]->Fill(lRecDecayVtx[2]-lTrueDecayVtx[2]);
     
-    vRecDecayLenght = TVector3(lRecDecayLenght[0], lRecDecayLenght[1], lRecDecayLenght[2]);
-    lHypCtRec = vRecDecayLenght.Mag()*kHypMass/lLVhyp.P();
-    fHistCtRec[lCharge]->Fill(lHypCtRec);
+    //this part is implemented only for the std vertexer
+
+    if(fAlg==2){
+      float pointAngle = lLVhyp.Angle(vRecDecayLenght);
+      cospa = std::cos(pointAngle);
+      /// compute the DCA of the 3 tracks from the primary and decay vertex
+      AliESDVertex lPV(lTruePrimaryVtx, lPrimaryVtxCov, 1., 1000);
+      for (int iTrack = 0; iTrack < 3; iTrack++) {
+        double dca2dv[2]    = {0.};
+        double dca2pv[2]    = {0.};
+        double dca2dvcov[3] = {0.};
+        double dca2pvcov[3] = {0.};
+        lTrack[iTrack]->PropagateToDCA(lDecayVertex, lMagField, 1000., dca2dv, dca2dvcov);
+        lTrack[iTrack]->PropagateToDCA(&lPV, lMagField, 1000., dca2pv, dca2pvcov);
+
+        float dcaXYdv = std::abs(dca2dv[0]) * 10.;    // in mm
+        float dcaZdv  = std::abs(dca2dv[1]) * 10.;    // in mm
+        float dcadv   = Norm(dcaXYdv, dcaZdv) * 10.;  // in mm
+
+        fHistDCA2dvXY[iTrack]->Fill(dcaXYdv);
+        fHistDCA2dvZ[iTrack]->Fill(dcaZdv);
+        fHistDCA2dv[iTrack]->Fill(dcadv);
+
+        float dcaXYpv = std::abs(dca2pv[0]) * 10.;    // in mm
+        float dcaZpv  = std::abs(dca2pv[1]) * 10.;    // in mm
+        float dcapv   = Norm(dcaXYpv, dcaZpv) * 10.;  // in mm
+
+        fHistDCA2pvXY[iTrack]->Fill(dcaXYpv);
+        fHistDCA2pvZ[iTrack]->Fill(dcaZpv);
+        fHistDCA2pv[iTrack]->Fill(dcapv);
+      }
+      /// compute the track2track distance used in the vertexer
+      float pPM[3][3];
+      for (int iPerm = 0; iPerm < 3; iPerm++) {
+        fHypertritonVertexer.Find2ProngClosestPoint(lTrack[iPerm], lTrack[(iPerm + 1) % 3], lMagField, pPM[iPerm]);
+        fHistTrackDistance[iPerm]->Fill(Point2PointDistance(pPM[iPerm], pPM[(iPerm + 1) % 3]) * 10.);
+      }
+      double vertexChi2NDF = lDecayVertex->GetChi2perNDF();
+      fHistVertexChi2->Fill(vertexChi2NDF);
+    }
   }
-  else if(fAlg==0){
-    kfPVertex.SetXYZ(lRecPrimaryVtx[0],lRecPrimaryVtx[1],lRecPrimaryVtx[2]);
-    KFParticle prodVertex{kfPVertex};
-    lCollection.hypertriton.SetProductionVertex(prodVertex); 
-    lHypCtRec = lCollection.hypertriton.S()*kHypMass;
-    fHistCtRec[lCharge]->Fill(lHypCtRec);
-  }
-  else{
-    fHistCtRec[lCharge]->Fill(recHyp.ct);
-    lHypMassRec=recHyp.m;
-    lHypCtRec=recHyp.ct;
-    lHypPtRec=recHyp.pt;
+
+  if(fAlg!=1){
+    fHistCosPAngle->Fill(cospa);
+    if(cospa<0.99)
+      return true;
   }
   /// Efficiency histograms
   int fOldClones = fNclones;
 
-  for(int iVar=0; iVar<kNVar; iVar++)
+  for(int iVar=0; iVar<kNVar; iVar++){
     for(int iCut=0; iCut<kNCut; iCut++)
       if(AcceptCandidate(iCut,iVar)){
         fNclones=fOldClones;
@@ -393,88 +490,10 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
           else{
             fHistClonesVsCuts[iVar][lCharge]->Fill(lHypPtGen,lHypCtGen,iCut);
             fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
-            fHistMassRes[iVar][0][lCharge]->Fill(lHypMassRec-kHypMass,lHypPtRec,iCut);
-            fHistMassRes[iVar][1][lCharge]->Fill(lHypMassRec-kHypMass,lHypCtRec,iCut);
           }
         }
       }
-
-  //only for the standard cuts
-  if(!AcceptCandidate(0,0)) return true;
-
-  fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
-  //this part is not implemented for the o2
-  float cospa;
-  if(fAlg==0){
-    ROOT::Math::XYZVectorF decayVtx{lCollection.hypertriton.X(), lCollection.hypertriton.Y(), lCollection.hypertriton.Z()};
-    ROOT::Math::XYZVectorF mom{lCollection.hypertriton.Px(), lCollection.hypertriton.Py(), lCollection.hypertriton.Pz()};
-    cospa = mom.Dot(decayVtx) / std::sqrt(decayVtx.Mag2() * mom.Mag2());
-
-    float dec_vertex[3] = {lCollection.hypertriton.X(), lCollection.hypertriton.Y(), lCollection.hypertriton.Z()};
-    double dcaXY[3],dca[3],dcaPP[3];
-    dcaXY[0] = lCollection.deuteron.GetDistanceFromVertexXY(dec_vertex);
-    dca[0] = lCollection.deuteron.GetDistanceFromVertex(dec_vertex);
-    dcaXY[1] = lCollection.proton.GetDistanceFromVertexXY(dec_vertex);
-    dca[1] = lCollection.proton.GetDistanceFromVertex(dec_vertex);
-    dcaXY[2] = lCollection.pion.GetDistanceFromVertexXY(dec_vertex);
-    dca[2] = lCollection.pion.GetDistanceFromVertex(dec_vertex);
-
-    dcaPP[0] = lCollection.deuteron.GetDistanceFromParticle(lCollection.proton);
-    dcaPP[1] = lCollection.pion.GetDistanceFromParticle(lCollection.deuteron);
-    dcaPP[2] = lCollection.pion.GetDistanceFromParticle(lCollection.proton);
-    //still to check the units
-    for(int iPar=0; iPar<3; iPar++){
-      fHistDCA2dvXY[iPar]->Fill(dcaXY[iPar]);
-      fHistDCA2dvZ[iPar]->Fill(TMath::Sqrt(dca[iPar]*dca[iPar]-dcaXY[iPar]*dcaXY[iPar]));
-      fHistDCA2dv[iPar]->Fill(dca[iPar]);
-      fHistTrackDistance[iPar]->Fill(dcaPP[iPar]);
-    }
-    fHistVertexChi2->Fill(lCollection.hypertriton.GetChi2()/lCollection.hypertriton.GetNDF());
-  }
-  
-  //this part is implemented only for the std vertexer
-
-  if(fAlg==2){
-    float pointAngle = lLVhyp.Angle(vRecDecayLenght);
-    cospa = std::cos(pointAngle);
-    /// compute the DCA of the 3 tracks from the primary and decay vertex
-    AliESDVertex lPV(lTruePrimaryVtx, lPrimaryVtxCov, 1., 1000);
-    for (int iTrack = 0; iTrack < 3; iTrack++) {
-      double dca2dv[2]    = {0.};
-      double dca2pv[2]    = {0.};
-      double dca2dvcov[3] = {0.};
-      double dca2pvcov[3] = {0.};
-      lTrack[iTrack]->PropagateToDCA(lDecayVertex, lMagField, 1000., dca2dv, dca2dvcov);
-      lTrack[iTrack]->PropagateToDCA(&lPV, lMagField, 1000., dca2pv, dca2pvcov);
-
-      float dcaXYdv = std::abs(dca2dv[0]) * 10.;    // in mm
-      float dcaZdv  = std::abs(dca2dv[1]) * 10.;    // in mm
-      float dcadv   = Norm(dcaXYdv, dcaZdv) * 10.;  // in mm
-
-      fHistDCA2dvXY[iTrack]->Fill(dcaXYdv);
-      fHistDCA2dvZ[iTrack]->Fill(dcaZdv);
-      fHistDCA2dv[iTrack]->Fill(dcadv);
-
-      float dcaXYpv = std::abs(dca2pv[0]) * 10.;    // in mm
-      float dcaZpv  = std::abs(dca2pv[1]) * 10.;    // in mm
-      float dcapv   = Norm(dcaXYpv, dcaZpv) * 10.;  // in mm
-
-      fHistDCA2pvXY[iTrack]->Fill(dcaXYpv);
-      fHistDCA2pvZ[iTrack]->Fill(dcaZpv);
-      fHistDCA2pv[iTrack]->Fill(dcapv);
-    }
-    /// compute the track2track distance used in the vertexer
-    float pPM[3][3];
-    for (int iPerm = 0; iPerm < 3; iPerm++) {
-      fHypertritonVertexer.Find2ProngClosestPoint(lTrack[iPerm], lTrack[(iPerm + 1) % 3], lMagField, pPM[iPerm]);
-      fHistTrackDistance[iPerm]->Fill(Point2PointDistance(pPM[iPerm], pPM[(iPerm + 1) % 3]) * 10.);
-    }
-    double vertexChi2NDF = lDecayVertex->GetChi2perNDF();
-    fHistVertexChi2->Fill(vertexChi2NDF);
-  }
-  
-  if(fAlg!=1)
-    fHistCosPAngle->Fill(cospa);
+  }  
   return true;
 }
 
@@ -500,34 +519,12 @@ void AliSelectorFindableHyperTriton3Body::Terminate(){
 bool AliSelectorFindableHyperTriton3Body::AcceptCandidate(int iCut = 0, int iVar = 0){
   int CutsSet[3] = {0,0,0};
   CutsSet[iVar] = iCut;
-
-
+  float dca[2];
   for(int iTrack = 0; iTrack < 3; iTrack++){
-    /*
-    bool hasTOF{HasTOF(&*fTreeHyp3BodyVarTracks[iTrack])};
-    float dca[2];
-    float  fRequireTOFpid[3] = {10.,10.,10.}; /// momentum after which the TOF matching is required
-    int   fMinTPCpidClusters[3] = {70, 70, 70};
-    float fMinTrackDCA[3] = {0., 0., 0.};
-    float fTPCsigmas[3] = {3.5f, 3.5f, 3.5f};
-    float fTOFsigmas[3] = {4.f, 4.f, 4.f};
-    float fTrackPtRange[3][2] = {{0.f, 7.f},{0.f, 4.f},{0.f, 1.f}};
-    constexpr AliPID::EParticleType kAliPID[3]{AliPID::kDeuteron,AliPID::kProton,AliPID::kPion};
-
+    //cut on dca
     fTreeHyp3BodyVarTracks[iTrack]->GetImpactParameters(dca[0], dca[1]);
     double dcaNorm = std::hypot(dca[0], dca[1]);
-
-    for (int iT{0}; iT < 3; ++iT) {
-      nSigmasTPC[iT] = fPIDResponse->NumberOfSigmasTPC(&*fTreeHyp3BodyVarTracks[iTrack], kAliPID[iT]);
-      nSigmasTOF[iT] = fPIDResponse->NumberOfSigmasTOF(&*fTreeHyp3BodyVarTracks[iTrack], kAliPID[iT]);
-      bool requireTOFpid = &*fTreeHyp3BodyVarTracks[iTrack]->P() > fRequireTOFpid[iT];
-      if (std::abs(nSigmasTPC[iT]) < fTPCsigmas[iT] && dcaNorm > fMinTrackDCA[iT] && track->Pt() < fTrackPtRange[iT][1] && 
-          track->Pt() > fTrackPtRange[iT][0] && track->GetTPCsignalN() >= fMinTPCpidClusters[iT])
-        candidate[iT] = (std::abs(nSigmasTOF[iT]) < fTOFsigmas[iT]) || (!hasTOF && !requireTOFpid);
-    }
-    */
-
-
+    if(dcaNorm<0.05) return false;
     if(!fESDtrackCuts->AcceptTrack(&*fTreeHyp3BodyVarTracks[iTrack])) return false;
     //cut on NsigmaTPC
     if(*fTreeHyp3BodyVarNsigmaTPC[iTrack] > kCuts[0][CutsSet[0]][iTrack]) return false;
@@ -541,13 +538,9 @@ bool AliSelectorFindableHyperTriton3Body::AcceptCandidate(int iCut = 0, int iVar
 
 
 
-bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RParticles &kResult, int Chi2Set){
+bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RParticles &kResult){
 
-  float kDeuMass{1.87561};
-  float kPMass{0.938272};
-  float kPiMass{0.13957};
   float kMasses[3]{kDeuMass,kPMass,kPiMass};
-  
   double posmom[6],cov[21];
   RHyperTriton3KFSel recHyp;
   KFParticle helper[3];
@@ -576,7 +569,7 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
   if (recHyp.chi2_deuprot > kMaxKFchi2[0][0])
     return false;
 
-  if (kTrack[1] == kTrack[2] || kTrack[0] == kTrack[2] || kTrack[2]->Charge() * kTrack[1]->Charge() > 0) 
+  if (kTrack[0] == kTrack[2] || kTrack[2]->Charge() * kTrack[1]->Charge() > 0) 
     return false;
 
   KFParticle hyperTriton{twoCandidate};
@@ -599,8 +592,8 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
   float dca_de_pr = helper[0].GetDistanceFromParticle(helper[1]);
   float dca_de_pi = helper[0].GetDistanceFromParticle(helper[2]);
   float dca_pr_pi = helper[1].GetDistanceFromParticle(helper[2]);
-  if(dca_de_pr > 0.05 || dca_de_pi > 0.05 || dca_pr_pi > 0.05)
-    return false;
+  //if(dca_de_pr > 2. || dca_de_pi > 2. || dca_pr_pi > 2.)
+  //  return false;
   kResult = kCollection;
   return true;
 }
@@ -612,16 +605,13 @@ struct HelperParticleO2 {
 };
 
 bool AliSelectorFindableHyperTriton3Body::O2Vertexer(AliESDtrack* kTrack [],RHyperTritonO2 &recHyp, double pvPos[]){
+  
   o2::vertexing::DCAFitter3 fVertexer;
-
-  float kDeuMass{1.87561};
-  float kPMass{0.938272};
-  float kPiMass{0.13957};
 
   HelperParticleO2 helper[3];
   for (int iT=0; iT < 3; iT++)
     helper[iT].track = static_cast<o2::track::TrackParCov*>((AliExternalTrackParam*)kTrack[iT]);
-
+  //the next line is useless
   if(helper[0].track == helper[1].track || helper[0].track == helper[2].track || helper[1].track == helper[2].track)
     return false;
 
@@ -629,10 +619,13 @@ bool AliSelectorFindableHyperTriton3Body::O2Vertexer(AliESDtrack* kTrack [],RHyp
   try {
     nVert = fVertexer.process(*helper[0].track, *helper[1].track, *helper[2].track);
   }
-  catch (std::runtime_error& e) {}//?
+  catch (std::runtime_error& e) {
+    std::cout << "MyException caught" << std::endl;
+    std::cout << e.what() << std::endl;
+    return false;
+  }
   if (nVert) {
     auto vert = fVertexer.getPCACandidate();
-
     auto& deuTrack = fVertexer.getTrack(0);
     auto& prTrack = fVertexer.getTrack(1);
     auto& piTrack = fVertexer.getTrack(2);

@@ -126,15 +126,14 @@ public:
   //TH3D *fHistSingleRecVsMaxCh1[2] = {{nullptr}};
   TH3D *fHistGenVsCuts[3][2] = {{nullptr}};
 
-  TH1D* fHistX[2] = {nullptr};
-  TH1D* fHistY[2] = {nullptr};
-  TH1D* fHistZ[2] = {nullptr};
-
   // Histograms for selection
   TH2D *fHistInvMassPt[2][3] = {{nullptr}};
   TH2D *fHistInvMassPtSel[2][3] = {{nullptr}};
 
-  TH3D *fHistMassRes[3][2][2] = {nullptr};//[Matter][ct/pt]
+  TH2D *fHistMassResPt[2] = {nullptr};//[Matter][ct/pt]
+  TH2D *fHistMassResCt[2] = {nullptr};//[Matter][ct/pt]
+  TH2D *fHistCtResCt[2] = {nullptr};//[Matter][ct/pt]
+  TH2D *fHistPtResPt[2] = {nullptr};//[Matter][ct/pt]
 
   TH1D *fHistDaughterPt[3][3] = {{nullptr}};
   TH1D *fHistDaughterTPCchi2[3][3] = {{nullptr}};
@@ -157,7 +156,7 @@ public:
   TH1D *fHistTrackDistance[3] = {nullptr};
 
   bool AcceptCandidate(int,int);
-  bool KFVertexer(AliESDtrack* [], RParticles &, int);
+  bool KFVertexer(AliESDtrack* [], RParticles &);
   bool O2Vertexer(AliESDtrack* [], RHyperTritonO2 &, double []);
 
   ClassDef(AliSelectorFindableHyperTriton3Body, 0);
