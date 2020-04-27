@@ -36,7 +36,7 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
 
   TH3D* fHistVsCuts = nullptr;
   TH2D* fHistProj = nullptr;
-  TH1D* fHist[number_of_cuts][number_of_variations] = {{nullptr}};
+  TH1D* fHist[3][number_of_variations] = {{nullptr}};
   TH2D* fHistGenTot = nullptr;
   TH1D* fHistGen[2] = {nullptr};//for pt and ct
   TCanvas cv;
