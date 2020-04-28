@@ -55,7 +55,7 @@ template <typename T,size_t size_x,size_t size_y>
 void multirainbow_plot(const T (&histos)[size_x][size_y], TCanvas &multi_cv, const char* canvas_name, bool legend=true, const char* plot_mode=""){
   multi_cv.SetWindowSize(600*size_x,400);  
   multi_cv.SetName(canvas_name);
-  TLegend *leg=new TLegend(0.2,0.2,0.5,0.5);
+  TLegend *leg = new TLegend(0.2,0.2,0.5,0.5);
   multi_cv.Divide(size_x,1);
   bool first=true;
   for(int x=0; x<size_x; x++){
