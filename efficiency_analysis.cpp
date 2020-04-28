@@ -16,11 +16,11 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   
   gSystem->Exec(Form("mkdir %s",folder_name));
 
-  const char lAM[3]{"AM"};
-  const char *lProj[2]{"pT", "ct"};
-  const char *lProjSet[2]{"zx", "zy"};
-  const char *lVarName[3]={ "NsigmaTPC","NclusterTPC","NclusterITS"};
-  const char *lMeasure[3]={"Efficiency","FakeRate","CloneRate"};
+  const char  lAM[2] = {'A','M'};
+  const char* lProj[2] = {"pT","ct"};
+  const char* lProjSet[2] = {"zx","zy"};
+  const char* lVarName[3] = {"NsigmaTPC","NclusterTPC","NclusterITS"};
+  const char* lMeasure[3] = {"Efficiency","FakeRate","CloneRate"};
   const char* lProjMeas[3] = {"Rec","Fake","Clones"};
 
   TFile input_file(input_name);
@@ -28,20 +28,22 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   const int ndir=5;
   TDirectory* subdir;
   for(int iVar=0; iVar<3; iVar++){
-    for(int iMeas=0; iMeas<3; iMeas++)
-      for(int iProj=0; iProj<2; iProj++)
+    for(int iMeas=0; iMeas<3; iMeas++){
+      for(int iProj=0; iProj<2; iProj++){
         subdir = output_file.mkdir(Form("%s/%s/%s",lVarName[iVar],lMeasure[iMeas],lProj[iProj]));
+      }
+    }
   }
 
-  TH3D* fHistVsCuts = nullptr;
-  TH2D* fHistProj = nullptr;
-  TH1D* fHist[3][number_of_variations] = {{nullptr}};
+  TH3D* fHistRecVsCuts = nullptr;
+  TH2D* fHistRecProj = nullptr;
+  TH1D* fHistRec[3][kNvariations] = {{nullptr}};
   TH2D* fHistGenTot = nullptr;
-  TH1D* fHistGen[2] = {nullptr};//for pt and ct
+  TH1D* fHistGen[2] = {nullptr}; //for pt and ct
   TCanvas cv;
-  cv.Print(Form("%s/%s",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name,pdf_file));
   //array for the indexes of the cuts, with the cuts ordered from the tighter to the looser
-  int ordered_cuts[number_of_variations];
+  int ordered_cuts[kNvariations];
   //matter or antimatter
   for(int iMat=0; iMat<2; iMat++){
     // histograms of the genereted hypetritons
@@ -52,38 +54,34 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
     //projection on pt or ct
     for(int iProj=0; iProj<2; iProj++){
       //variable of the cut
-      for(int iVar=0; iVar<number_of_cuts; iVar++){
+      for(int iVar=0; iVar<kNcuts; iVar++){
         //meaurements (efficiency,fake-rate,clone-rate)
         for(int iMeas=0; iMeas<3; iMeas++){
           //get the TH3(pt,ct,cut)
-          fHistVsCuts = (TH3D*) input_file.Get(Form("fHist%s_%s_%c",lProjMeas[iMeas],lVarName[iVar],lAM[iMat]));
-          fHistProj = (TH2D*) fHistVsCuts->Project3D(lProjSet[iProj]);
+          fHistRecVsCuts = (TH3D*) input_file.Get(Form("fHist%s_%s_%c",lProjMeas[iMeas],lVarName[iVar],lAM[iMat]));
+          fHistRecProj = (TH2D*) fHistRecVsCuts->Project3D(lProjSet[iProj]);
           //ordering of the cuts
           ordered_indexes(iVar,ordered_cuts);
           //different cuts
-          for(auto iCut :ordered_cuts){
-            fHist[iMeas][iCut] = (TH1D*)fHistProj->ProjectionX(Form("fHist%s_%s_%s_cut_%.1f_%c",lProjMeas[iMeas],lVarName[iVar],lProj[iProj],kCuts[iVar][iCut][0],lAM[iMat]),iCut+1,iCut+1);
+          for(auto iCut : ordered_cuts){
+            fHistRec[iMeas][iCut] = (TH1D*)fHistRecProj->ProjectionX(Form("fHist%s_%s_%s_cut_%.1f_%c",lProjMeas[iMeas],lVarName[iVar],lProj[iProj],kCuts[iVar][iCut][0],lAM[iMat]),iCut+1,iCut+1);
             if(lProjMeas[iMeas]=="Rec"){
-              fHist[iMeas][iCut]->Divide(fHistGen[iProj]);
-              SetEfficiencyErrors(fHist[iMeas][iCut],fHistGen[iProj]);
-              fHist[iMeas][iCut]->GetYaxis()->SetTitle("efficiency");
-            }else if(lProjMeas[iMeas]=="Fake" || lProjMeas[iMeas]=="Clones"){
-              fHist[iMeas][iCut]->Divide(fHistGen[iProj]);
-              SetRateErrors(fHist[iMeas][iCut],fHistGen[iProj]); 
-              fHist[iMeas][iCut]->GetYaxis()->SetTitle(Form("#%s/#Gen",lProjMeas[iMeas]));
-            }
-            else{
-              fHist[iMeas][iCut]->Scale(1./fHistGen[iProj]->GetEntries());                
-              fHist[iMeas][iCut]->GetYaxis()->SetTitle("counts/N_{ev}");
+              fHistRec[iMeas][iCut]->Divide(fHistGen[iProj]);
+              SetEfficiencyErrors(fHistRec[iMeas][iCut],fHistGen[iProj]); //TODO: controlllare che faccia cosa giusta
+              fHistRec[iMeas][iCut]->GetYaxis()->SetTitle("efficiency");
+            } else { //TODO: cambiare questa c
+              fHistRec[iMeas][iCut]->Divide(fHistGen[iProj]);
+              SetRateErrors(fHistRec[iMeas][iCut],fHistGen[iProj]); 
+              fHistRec[iMeas][iCut]->GetYaxis()->SetTitle(Form("#%s/#Gen",lProjMeas[iMeas]));
             }
             //function to set some graphic features
-            set_style(fHist[iMeas][iCut],iCut);
-            fHist[iMeas][iCut]->SetTitle(Form("cut on %s : %.1f",lVarName[iVar],kCuts[iVar][iCut][0]));
+            set_style(fHistRec[iMeas][iCut],iCut);
+            fHistRec[iMeas][iCut]->SetTitle(Form("cut on %s : %.1f",lVarName[iVar],kCuts[iVar][iCut][0]));
             output_file.cd(Form("%s/%s/%s",lVarName[iVar],lMeasure[iMeas],lProj[iProj]));
-            fHist[iMeas][iCut]->Write();
+            fHistRec[iMeas][iCut]->Write();
           }
           //set the range of the histograms
-          set_range(fHist[iMeas]);
+          set_range(fHistRec[iMeas]);
           //plot of the histograms in a single canvas
           rainbow_plot(fHist[iMeas],cv,Form("RainbowPlot_%s_%s_%s_%c",lVarName[iVar],lMeasure[iMeas],lProj[iProj],lAM[iMat]),true);          
           output_file.cd();
@@ -130,8 +128,9 @@ void compare_efficiencies(char* Std_name="efficiencyStd.root", char* KF_name="ef
           fHist[iMeas][iFile] = (TH1D*) input_file[iFile]->Get(Form("NsigmaTPC/%s/%s/fHist%s_NsigmaTPC_%s_cut_%.1f_%c",lMeasure[iMeas],lProj[iProj],lProjMeas[iMeas],lProj[iProj],kCuts[0][0][0],lAM[iMat]));
           set_style(fHist[iMeas][iFile],iFile);
           fHist[iMeas][iFile]->SetTitle(lTitle[iFile]);
-          if(iMeas==0)
+          if(iMeas==0){
             fHist[iMeas][iFile]->GetYaxis()->SetRange(0,1);
+          }
         }
         //set_range(fHist[iMeas]);
         rainbow_plot(fHist[iMeas],cv,Form("RainbowPlot_%s_%s_%c",lMeasure[iMeas],lProj[iProj],lAM[iMat]),true);
@@ -201,16 +200,16 @@ void compare_resolutions(char* Std_name="resolutionStd.root", char* KF_name="res
 
 void ordered_indexes(int Var,int kCutsOrdered[]){
   float tmp;
-  float OriginalOrder[number_of_variations];
-  float Ordered[number_of_variations];
+  float OriginalOrder[kNvariations];
+  float Ordered[kNvariations];
 
-  for(int i=0;i<number_of_variations;i++){
+  for(int i=0;i<kNvariations;i++){
     Ordered[i]=kCuts[Var][i][0];
     OriginalOrder[i]=kCuts[Var][i][0];
   }
 
-  for (int j=0;j<number_of_variations;j++){
-    for (int i=number_of_variations-2;i>=j;i--){
+  for (int j=0;j<kNvariations;j++){
+    for (int i=kNvariations-2;i>=j;i--){
       if (Ordered[i]>Ordered[i+1])
       {
         tmp = Ordered[i];
@@ -220,8 +219,8 @@ void ordered_indexes(int Var,int kCutsOrdered[]){
     }
   }
 
-  for(int i=0;i<number_of_variations;i++){
-    for(int j=0;j<number_of_variations;j++){
+  for(int i=0;i<kNvariations;i++){
+    for(int j=0;j<kNvariations;j++){
       if(Ordered[i]==OriginalOrder[j])
         kCutsOrdered[i]=j;
     }
