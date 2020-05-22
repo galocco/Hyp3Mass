@@ -53,10 +53,10 @@ struct RHyperTriton3KF {
 
 void SetEfficiencyErrors(TH1D* , TH1D* );
 void SetRateErrors(TH1D*, TH1D*);
-void Rainbow_Plot_Eff(TH2D* [][3][7][2],TH2D* [2],const char* [],float [],TFile*);
-void MassResolutionPlot(TH3D* [][3][7][2],const char* [],float [],TFile* rfile);
+void Rainbow_Plot_Eff(TH2D* [][3][7][2],TH2D* [2],const char* [],float [],TDirectory*);
+void MassResolutionPlot(TH3D* [][3][7][2],const char* [],float [],TDirectory*);
 
-void KFAnalysis(bool test=false)
+void KFAnalysis(const char* output_name="test.root",bool test=false)
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
@@ -80,7 +80,7 @@ void KFAnalysis(bool test=false)
 
   TH1D* fHistChi[3];
   TH1D* fHistDCA[3];
-  
+  TH1D* fHistCosPA = new TH1D("fHistCosPA","",1000,0,1);
   for(int iCut=0; iCut<3; iCut++)
   {
     fHistChi[iCut] = new TH1D(Form("fHist%s",lCutChi2[iCut]),";#Chi^2",200,0,30);
@@ -88,6 +88,11 @@ void KFAnalysis(bool test=false)
   }
 
   TH2D* fHistGen[2];
+
+  TH1D* fHistGenPt= new TH1D("fHistGenPt",";p_{T} [GeV/c];",10,0,10);
+  TH1D* fHistGenPX= new TH1D("fHistGenPX",";p_{X} [GeV/c];",400,-10,10);
+  TH1D* fHistGenPY= new TH1D("fHistGenPY",";p_{Y} [GeV/c];",400,-10,10);
+  TH1D* fHistGenPZ= new TH1D("fHistGenPZ",";p_{Z} [GeV/c];",400,-10,10);
   //[rec/clone][#kinds of cuts][#number of cuts][#matter]
   TH2D* fHistEffDCA[2][3][n_cut_dca][2];
   TH2D* fHistEffChi2[2][3][n_cut_chi2][2];
@@ -100,15 +105,15 @@ void KFAnalysis(bool test=false)
   float cut_chi2[]={1.,1.5,2.,2.5,3.,3.5,50.};
   //inizializzo gli istogrammi
   for(int iMat=0; iMat<2; iMat++){
-    fHistGen[iMat] = new TH2D(Form("fHistGen_%c",lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+    fHistGen[iMat] = new TH2D(Form("fHistGen_%c",lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,50);
     for(int iCut=0; iCut<n_cut_dca; iCut++)
     {
       for(int iPar=0; iPar<3;iPar++){
-        fHistEffDCA[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
-        fHistEffDCA[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
+        fHistEffDCA[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,50);
+        fHistEffDCA[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,50);
       
-        fHistMassDCA[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
-        fHistMassDCA[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+        fHistMassDCA[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,50,100,-0.05,0.05);
+        fHistMassDCA[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,50,100,-0.05,0.05);
       
         //fHistResDCA[iPar][iCut][iMat] = new TH2D(Form("fHistResDCA_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";#Deltap_{T} [GeV/c];#Deltact [cm]",100,-2,2,100,-10,10);          
       }
@@ -116,10 +121,10 @@ void KFAnalysis(bool test=false)
     for(int iCut=0; iCut<n_cut_chi2; iCut++)
     {
       for(int iPar=0; iPar<3;iPar++){
-        fHistEffChi2[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
-        fHistEffChi2[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,100);
-        fHistMassChi2[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
-        fHistMassChi2[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,100,100,2.97-mgen,3.04-mgen);
+        fHistEffChi2[0][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,50);
+        fHistEffChi2[1][iPar][iCut][iMat] = new TH2D(Form("fHistEff_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm]",10,0,10,10,0,50);
+        fHistMassChi2[0][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,50,100,-0.05,0.05);
+        fHistMassChi2[1][iPar][iCut][iMat] = new TH3D(Form("fHistMass_%.1f_%s_clone_%c",cut_chi2[iCut],lCutChi2[iPar],lAM[iMat]),";p_{T} [GeV/c];ct [cm];#Deltam [GeV/c^2]",10,0,10,10,0,50,100,-0.05,0.05);
         //fHistResChi2[iPar][iCut][iMat] = new TH2D(Form("fHistResChi2_%.1f_%s_%c",cut_dca[iCut],lCutDCA[iPar],lAM[iMat]),";#Deltap_{T} [GeV/c];#Deltact [cm]",100,-2,2,100,-10,10);          
       }
     }
@@ -140,6 +145,10 @@ void KFAnalysis(bool test=false)
     for (auto &SHyper : SHyperVec)
     {
       fHistGen[SHyper.positive]->Fill(TMath::Sqrt(SHyper.px*SHyper.px+SHyper.py*SHyper.py),SHyper.l);
+      fHistGenPt->Fill(TMath::Sqrt(SHyper.px*SHyper.px+SHyper.py*SHyper.py));
+      fHistGenPX->Fill(SHyper.px);
+      fHistGenPY->Fill(SHyper.py);
+      fHistGenPZ->Fill(SHyper.pz);
     }
     
       
@@ -165,15 +174,17 @@ void KFAnalysis(bool test=false)
       {
         fHistChi[iCut]->Fill(chi2[iCut]);
         fHistDCA[iCut]->Fill(dca[iCut]);
-        if(chi2[iCut]>10 || dca[iCut]>0.05)
-          no=true;
       }
+      fHistCosPA->Fill(RHyper.cosPA);
       //messo come test per il selector
-      bool t[3];
-      t[0]=RHyper.dca_de>0.05 && RHyper.dca_pr>0.05 && RHyper.dca_pi>0.05;
+      bool t[5];
+      t[0]=true;//RHyper.dca_de>0.05 && RHyper.dca_pr>0.005 && RHyper.dca_pi>0.005;
       t[1]=TMath::Abs(RHyper.tpcNsig_de)<3. && TMath::Abs(RHyper.tpcNsig_pr)<3. && TMath::Abs(RHyper.tpcNsig_pi)<3.;
       t[2]=RHyper.cosPA>0.99;
-      //t[3]=RHyper.tpcClus_de>0. && RHyper.tpcClus_pi>0. && RHyper.tpcClus_pr>0.;
+      t[3]=RHyper.hasTOF_de && TMath::Abs(RHyper.tofNsig_de)<4;
+      //t[4]=TMath::Abs(RHyper.tpcClus_de)<3.99 && TMath::Abs(RHyper.tpcClus_pi)<3.99 && TMath::Abs(RHyper.tpcClus_pr)<3.99;
+      //t[4]=TMath::Abs(RHyper.tpcClus_de)>70 && TMath::Abs(RHyper.tpcClus_pi)>70 && TMath::Abs(RHyper.tpcClus_pr)>70;
+
       bool tot = true;
       for(int i=0;i<4;i++){
         tot= tot && t[i];
@@ -210,13 +221,20 @@ void KFAnalysis(bool test=false)
 
   }
 
-  TFile* rfile = new TFile("KFResults.root","RECREATE");
-  rfile->cd();
+  TFile rfile(output_name,"RECREATE");
+  const int ndir=5;
+  const char *lDir[ndir]={"utils","efficiency_dca","efficiency_chi2","resolution_dca","resolution_chi2"};
+  TDirectory* subdir[ndir];
+  for(int i=0; i<ndir; i++)
+    subdir[i] = rfile.mkdir(lDir[i]);
+  subdir[0]->cd();
+  //subdir[0]->cd();
   for(int iCut=0; iCut<3; iCut++)
   {
     fHistChi[iCut]->Write();
     fHistDCA[iCut]->Write();
   }
+  fHistCosPA->Write();
   //salvare istogrammi di massa
   for(int iMat=0; iMat<2; iMat++){
     for(int iCut=0; iCut<n_cut_dca; iCut++)
@@ -232,17 +250,21 @@ void KFAnalysis(bool test=false)
       }
     }
   }
+
+  fHistGenPt->Write();
+  fHistGenPX->Write();
+  fHistGenPY->Write();
+  fHistGenPZ->Write();
+  Rainbow_Plot_Eff(fHistEffChi2,fHistGen,lCutChi2,cut_chi2,subdir[2]);
+  Rainbow_Plot_Eff(fHistEffDCA,fHistGen,lCutDCA,cut_dca,subdir[1]);
   
-  Rainbow_Plot_Eff(fHistEffChi2,fHistGen,lCutChi2,cut_chi2,rfile);
-  Rainbow_Plot_Eff(fHistEffDCA,fHistGen,lCutDCA,cut_dca,rfile);
-  
-  MassResolutionPlot(fHistMassChi2,lCutChi2,cut_chi2,rfile);
-  MassResolutionPlot(fHistMassDCA,lCutDCA,cut_dca,rfile);
-  
+  MassResolutionPlot(fHistMassChi2,lCutChi2,cut_chi2,subdir[4]);
+  MassResolutionPlot(fHistMassDCA,lCutDCA,cut_dca,subdir[3]);
+
     
 }
 
-void Rainbow_Plot_Eff(TH2D* fHistRec[][3][7][2],TH2D* fHistGen[2],const char* lVar[],float cut[],TFile* rfile)
+void Rainbow_Plot_Eff(TH2D* fHistRec[][3][7][2],TH2D* fHistGen[2],const char* lVar[],float cut[],TDirectory* rfile)
 {
 
   const char *lClone[2]{"Eff", "Clone"};
@@ -250,7 +272,7 @@ void Rainbow_Plot_Eff(TH2D* fHistRec[][3][7][2],TH2D* fHistGen[2],const char* lV
   const char lAM[3]{"AM"};
   const char *lProj[2]{"Pt", "Ct"};
   const float lYRange[2][2]={{0,1.},{0.,0.015}};
-  rfile->ReOpen("UPDATE");
+  //rfile->ReOpen("UPDATE");
   
   //proiezioni e divisioni
   TH1D* fHistEff;
@@ -334,14 +356,14 @@ void Rainbow_Plot_Eff(TH2D* fHistRec[][3][7][2],TH2D* fHistGen[2],const char* lV
   }
 }
 
-void MassResolutionPlot(TH3D* fHistRec[][3][7][2],const char* lVar[],float cut[],TFile* rfile)
+void MassResolutionPlot(TH3D* fHistRec[][3][7][2],const char* lVar[],float cut[],TDirectory* rfile)
 {
 
   const char *lClone[2]{"Rec", "Clone"};
   const char lAM[3]{"AM"};
   const char *lProj[2]{"Pt", "Ct"};
   const char *lProjSet[2]{"zx", "zy"};
-  rfile->ReOpen("UPDATE");
+  //rfile->ReOpen("UPDATE");
   
   //proiezioni e divisioni
   TH1D* fHistRes;
