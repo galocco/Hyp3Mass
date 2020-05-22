@@ -9,7 +9,7 @@ void runSelectorFindableHyperTriton3Body(TString inputFile = "Output.root", TStr
     lTree->Process(&lSelector);
 }
 void runSelectorFindableHyperTriton3BodyAllVertexer() {
-    runSelectorFindableHyperTriton3Body("Output.root","selector_results.root",2,"./");
-    runSelectorFindableHyperTriton3Body("Output.root","selector_resultsKF.root",0,"./");
-    runSelectorFindableHyperTriton3Body("Output.root","selector_results02.root",1,"./");
+    runSelectorFindableHyperTriton3Body("Output.root","selector_resultsStd.root",2,"./");
+    runSelectorFindableHyperTriton3Body("Output.root","selector_resultsKFChi2_50.root",0,"./");
+    runSelectorFindableHyperTriton3Body("Output.root","selector_resultsO2.root",1,"./");
 }

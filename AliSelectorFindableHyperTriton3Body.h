@@ -16,32 +16,61 @@
 #include "AliVertexerHyperTriton3Body.h"
 #include "AliVertexerTracks.h"
 #include <TVector3.h>
+#include <TStopwatch.h>
 #include <vector>
 
 #include <KFParticle.h>
-#include "AliAnalysisTaskHypertritonO2.h"
 #include "DCAFitterN.h"
 
 class TH1D;
 class TH2D;
 class TH3D;
-struct RHyperTriton3KFSel {
-  float px = -999.f;
-  float py = -999.f;
-  float pz = -999.f;
-  float l = -1.f;
-  float r = -1.f;
-  float chi2_deuprot = -1.f;
-  float chi2_3prongs = -1.f;
-  float chi2_topology = -1.f;
-  float cosPA = -1.f;
-  float m = -1;
-};
+
 struct RParticles {
   KFParticle pion;
   KFParticle proton;
   KFParticle deuteron;
   KFParticle hypertriton;
+};
+
+struct RHyperTritonO2 {
+  float fCent = -1.;
+  float pt = -999.f;
+  float phi = -999.f;
+  float pz = -999.f;
+  float ct = -1.f;
+  float r = -1.f;
+  float cosPA = -2.f;
+  float m = -1;
+  float cosPA_Lambda = -2.; 
+  Double32_t mppi_vert = -1.; //[1.077,1.203,8]
+  Double32_t mppi = -1.;      //[1.077,1.203,8]
+  Double32_t dca_lambda_hyper = -1.0; //[0.0,8.0,8]
+  Double32_t dca_de = -1.0; //[0.0,8.0,8]
+  Double32_t dca_pr = -1.0; //[0.0,8.0,8]
+  Double32_t dca_pi = -1.0; //[0.0,8.0,8]
+  Double32_t tpcNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t dca_de_pr = -4.0; //[0.0,8.0,8]
+  Double32_t dca_de_pi = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pr_pi = -4.0; //[0.0,8.0,8]
+  Double32_t dca_de_sv = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pr_sv = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pi_sv = -4.0; //[0.0,8.0,8]
+  Double32_t chi2 = -1.f;      //[0.0,16.,16]
+  UChar_t tpcClus_de = 0u;
+  UChar_t tpcClus_pr = 0u;
+  UChar_t tpcClus_pi = 0u;
+  UChar_t candidates = 0u;
+  UChar_t fTrigger = 0u;
+  bool hasTOF_de = false;
+  bool hasTOF_pr = false;
+  bool hasTOF_pi = false;
+  bool positive = false;
 };
 
 class AliSelectorFindableHyperTriton3Body : public TSelector {
@@ -112,7 +141,11 @@ public:
   int fLastMotherId = -1;
   int fNclones = -1;
   bool fFakeCand = false;
-
+  int fNcycles = 0;
+  int fNrec = 0;
+  TH1D* fOperations = nullptr;
+  TH1D* fTotTime = nullptr;
+  TStopwatch* fTimer = nullptr;
   // Histogram for efficiencies
   TH1D *fHistCtRec[2] = {nullptr};
 
@@ -120,20 +153,24 @@ public:
   TH3D *fHistClonesVsCuts[3][2] = {{nullptr}};
 
   TH3D *fHistResolutionVsCuts[3][2] = {{nullptr}};
-
   TH3D *fHistSingleRecVsCuts[3][2] = {{nullptr}};
-  
-  //TH3D *fHistSingleRecVsMaxCh1[2] = {{nullptr}};
-  TH3D *fHistGenVsCuts[3][2] = {{nullptr}};
+  TH2D *fHistGen[2] = {nullptr};
 
+  TH1D *fHistGenPt = nullptr;
+  TH1D *fHistRecPt = nullptr;
   // Histograms for selection
   TH2D *fHistInvMassPt[2][3] = {{nullptr}};
   TH2D *fHistInvMassPtSel[2][3] = {{nullptr}};
-
-  TH2D *fHistMassResPt[2] = {nullptr};//[Matter][ct/pt]
-  TH2D *fHistMassResCt[2] = {nullptr};//[Matter][ct/pt]
-  TH2D *fHistCtResCt[2] = {nullptr};//[Matter][ct/pt]
-  TH2D *fHistPtResPt[2] = {nullptr};//[Matter][ct/pt]
+  TH2D *fHistMassResPt[2] = {nullptr};//[Matter]
+  TH2D *fHistMassResCt[2] = {nullptr};//[Matter]
+  TH2D *fHistCtResCt[2] = {nullptr};//[Matter]
+  TH2D *fHistCtResCtTrueP[2] = {nullptr};//[Matter]
+  TH2D *fHistPtResPt[2] = {nullptr};//[Matter]
+  TH2D *fHistPResP[2] = {nullptr};//[Matter]
+  TH2D *fHistXResX[2] = {nullptr};//[Matter]
+  TH2D *fHistYResY[2] = {nullptr};//[Matter]
+  TH2D *fHistZResZ[2] = {nullptr};//[Matter]
+  TH1D *fHistPDG[3] = {nullptr};//[Matter]
 
   TH1D *fHistDaughterPt[3][3] = {{nullptr}};
   TH1D *fHistDaughterTPCchi2[3][3] = {{nullptr}};
@@ -144,20 +181,22 @@ public:
   TH1D *fHistNSigmaTOF[3][3] = {{nullptr}};
 
   // Histograms after vertexer
-  TH1D *fHistVertexChi2 = nullptr;
-  TH1D *fHistResDecayVtx[3] = {nullptr};
-  TH1D *fHistCosPAngle = nullptr;
-  TH1D *fHistDCA2pvXY[3] = {nullptr};
-  TH1D *fHistDCA2pvZ[3] = {nullptr};
-  TH1D *fHistDCA2pv[3] = {nullptr};
-  TH1D *fHistDCA2dvXY[3] = {nullptr};
-  TH1D *fHistDCA2dvZ[3] = {nullptr};
-  TH1D *fHistDCA2dv[3] = {nullptr};
-  TH1D *fHistTrackDistance[3] = {nullptr};
+  TH1D *fHistVertexChi2[2] = {nullptr};
+  TH1D *fHistCosPAngle[2] = {nullptr};
+  TH1D *fHist2ProngChi2[2] = {nullptr};
+  TH1D *fHist3ProngChi2[2] = {nullptr};
+  TH1D *fHistVertChi2[2] = {nullptr};
+  TH1D *fHistDCA2pvXY[2][3] = {{nullptr}};
+  TH1D *fHistDCA2pvZ[2][3] = {{nullptr}};
+  TH1D *fHistDCA2pv[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dvXY[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dvZ[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dv[2][3] = {{nullptr}};
+  TH1D *fHistTrackDistance[2][3] = {{nullptr}};
 
   bool AcceptCandidate(int,int);
-  bool KFVertexer(AliESDtrack* [], RParticles &);
-  bool O2Vertexer(AliESDtrack* [], RHyperTritonO2 &, double []);
+  bool KFVertexer(AliESDtrack* [], RParticles &, double [], float []);
+  bool O2Vertexer(AliESDtrack* [], RHyperTritonO2 &, double [],float ,float []);
 
   ClassDef(AliSelectorFindableHyperTriton3Body, 0);
 };
