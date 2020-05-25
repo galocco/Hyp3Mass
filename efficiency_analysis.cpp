@@ -24,6 +24,14 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   const char* lProjMeas[3] = {"Rec","Fake","Clones"};
 
   TFile input_file(input_name);
+  TFile gen_file("Output.root");
+  TH3D* fHistGen3D[2];
+  fHistGen3D[0] = (TH3D*) gen_file.Get("Hyp3FindTask_summary/fHistGeneratedPtVsYVsCentralityHypTrit");
+  fHistGen3D[1] = (TH3D*) gen_file.Get("Hyp3FindTask_summary/fHistGeneratedPtVsYVsCentralityAntiHypTrit");
+  int NHyp3[2];
+  NHyp3[0] = 4339520;//fHistGen3D[0]->GetEntries();
+  NHyp3[1] = 4339520;//fHistGen3D[1]->GetEntries();
+  const float cthyp=7.25;
   TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
   const int ndir=5;
   TDirectory* subdir;
@@ -40,6 +48,8 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   TH1D* fHistRec[3][kNvariations] = {{nullptr}};
   TH2D* fHistGenTot = nullptr;
   TH1D* fHistGen[2] = {nullptr}; //for pt and ct
+  fHistGen[0] = new TH1D("fHistGetPt","",10,0,10);
+  fHistGen[1] = new TH1D("fHistGetCt","",10,0,50); 
   TCanvas cv("","",800,450);
   cv.Print(Form("%s/%s[",folder_name,pdf_file));
   //array for the indexes of the cuts, with the cuts ordered from the tighter to the looser
@@ -47,9 +57,11 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   //matter or antimatter
   for(int iMat=0; iMat<2; iMat++){
     // histograms of the genereted hypetritons
-    fHistGenTot = (TH2D*) input_file.Get(Form("fHistGen_%c",lAM[iMat]));
-    fHistGen[0] = (TH1D*) fHistGenTot->ProjectionX("fHistGenPt",1,fHistGenTot->GetNbinsY());
-    fHistGen[1] = (TH1D*) fHistGenTot->ProjectionY("fHistGenCt",1,fHistGenTot->GetNbinsX()); 
+    //fHistGenTot = (TH2D*) input_file.Get(Form("fHistGen_%c",lAM[iMat]));
+    for(int iBin=1; iBin<=10; iBin++){
+      fHistGen[0]->SetBinContent(iBin,NHyp3[iMat]/10.);
+      fHistGen[1]->SetBinContent(iBin,NHyp3[iMat]*(TMath::Exp(-5.*(iBin-1)/cthyp)-TMath::Exp(-5.*iBin/cthyp)*cthyp/5)); 
+    }
 
     //projection on pt or ct
     for(int iProj=0; iProj<2; iProj++){
@@ -96,8 +108,10 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
       }
     }
   }
-  cv.Print(Form("%%s/s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name,pdf_file));
 }
+
+
 ///
 void compare_efficiencies(char* Std_name="efficiencyStd.root", char* KF_name="efficiencyKF.root", char* O2_name="efficiencyO2.root", char* output_name="efficiency_comparison.root", char* pdf_file="efficiency_comparison.pdf", char* folder_name="nome")
 {
