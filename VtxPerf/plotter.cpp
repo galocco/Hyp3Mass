@@ -1,12 +1,12 @@
 #include "utils.h"
 //function to plot the TH2D varrec-vargen vs vargen
-void plot2D_All(char* Std_name="MassResolutionStd.root", char* KF_name="MassResolutionKF.root", char* O2_name="MassResolutionO2.root", char* output_name="plot2d.root", char* folder_name="plot2dAll")
+void plot2D_All(TString Std_name="MassResolutionStd.root", TString KF_name="MassResolutionKF.root", TString O2_name="MassResolutionO2.root", TString output_name="plot2d.root", TString folder_name="plot2dAll")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[3] = {"Standard vertexer","O^{2} vertexer","Kalman Filter"};
@@ -14,10 +14,10 @@ void plot2D_All(char* Std_name="MassResolutionStd.root", char* KF_name="MassReso
   const char* lQuant[8] = {"p_{T} (GeV/#it{c})","#it{c}t (cm)","p_{T} (GeV/#it{c})","p (GeV/#it{c})","#it{c}t (cm)","x (cm)","y (cm)","z (cm)"};
 
   TFile* input_file[3];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(O2_name);
-  input_file[2] = new TFile(KF_name);
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[2] = new TFile(KF_name.Data());
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
   TCanvas cv("","",800*3,450);
   TCanvas cv_slice("","",800*3,450);
   cv_slice.Divide(4,4);
@@ -42,10 +42,10 @@ void plot2D_All(char* Std_name="MassResolutionStd.root", char* KF_name="MassReso
       multirainbow_plot(plot2d,cv,Form("MultiRainbowPlot_%s_%c",lHistName[iDist],lAM[iMat]),false,"colz");
       cv.cd();
 
-      cv.Print(Form("%s/Plot_%s_%c.pdf[",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf[",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv.Write();          
-      cv.Print(Form("%s/Plot_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
-      cv.Print(Form("%s/Plot_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv.Clear(); 
     }
   }   
@@ -53,13 +53,13 @@ void plot2D_All(char* Std_name="MassResolutionStd.root", char* KF_name="MassReso
 }
 
 //function to plot the TH2D varrec-vargen vs vargen
-void plot2D_KF_O2(char* KF_name="MassResolutionKFChi2_2.root", char* O2_name="MassResolutionO2.root", char* output_name="plot2D_KF_O2.root", char* folder_name="plot2D_KF_O2")
+void plot2D_KF_O2(TString KF_name="MassResolutionKFChi2_2.root", TString O2_name="MassResolutionO2.root", TString output_name="plot2D_KF_O2.root", TString folder_name="plot2D_KF_O2")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[2] = {"Kalman Filter #chi^{2}/NDF<2","O^{2} vertexer"};
@@ -67,9 +67,9 @@ void plot2D_KF_O2(char* KF_name="MassResolutionKFChi2_2.root", char* O2_name="Ma
   const char* lQuant[8] = {"p_{T} (GeV/#it{c})","#it{c}t (cm)","p_{T} (GeV/#it{c})","p (GeV/#it{c})","#it{c}t (cm)","x (cm)","y (cm)","z (cm)"};
 
   TFile* input_file[2];
-  input_file[1] = new TFile(O2_name);
-  input_file[0] = new TFile(KF_name);
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[0] = new TFile(KF_name.Data());
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
   TCanvas cv("","",800*2,450);
   TCanvas cv_slice("","",800*2,450);
   cv_slice.Divide(4,4);
@@ -94,10 +94,10 @@ void plot2D_KF_O2(char* KF_name="MassResolutionKFChi2_2.root", char* O2_name="Ma
       multirainbow_plot(plot2d,cv,Form("MultiRainbowPlot_%s_%c",lHistName[iDist],lAM[iMat]),false,"colz");
       cv.cd();
 
-      cv.Print(Form("%s/Plot_%s_%c.pdf[",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf[",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv.Write();          
-      cv.Print(Form("%s/Plot_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
-      cv.Print(Form("%s/Plot_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
+      cv.Print(Form("%s/Plot_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv.Clear(); 
     }
   }   
@@ -105,12 +105,12 @@ void plot2D_KF_O2(char* KF_name="MassResolutionKFChi2_2.root", char* O2_name="Ma
 }
 
 //function to plot the distribution of the resolution bin per bin
-void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root", char* KF_name="MassResolutionKFChi2_50.root", char* O2_name="MassResolutionO2.root", char* output_name="distr.root", char* pdf_file="distr.pdf", char* folder_name="distr")
+void plot_res_slices(bool single=false, TString Std_name="MassResolutionStd.root", TString KF_name="MassResolutionKFChi2_50.root", TString O2_name="MassResolutionO2.root", TString output_name="distr.root", TString pdf_file="distr.pdf", TString folder_name="distr")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[3] = {"Standard vertexer","O^{2} vertexer","Kalman Filter #chi^{2}/NDF<50"};
@@ -121,10 +121,10 @@ void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root",
   const int begin[8]={2,1,2,2,1,1,1,1};
   const int canvas_index[12]={1,2,3,4,1,2,3,4,1,2,3,4};
   TFile* input_file[3];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(O2_name);
-  input_file[2] = new TFile(KF_name);
-  TFile output_file(output_name,"RECREATE");
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[2] = new TFile(KF_name.Data());
+  TFile output_file(output_name.Data(),"RECREATE");
   TCanvas* cv_slice;
   TH2D* plot2d[3][1];
   TH1D* proj[10][3];
@@ -167,7 +167,7 @@ void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root",
           counter++;
           cv_slice->cd(1);
           leg.Draw();
-          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter)); 
+          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter)); 
           cv_slice->Delete();
           cv_slice = new TCanvas("","",800*2,450*2);
           cv_slice->Divide(2,2);
@@ -184,7 +184,7 @@ void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root",
         if(single){
           counter++;
           leg.Draw();
-          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter)); 
+          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter)); 
           cv_slice->Write();
           cv_slice = new TCanvas("","",800*2,450*2);
         }
@@ -192,7 +192,7 @@ void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root",
       if(!single){
         cv_slice->cd(1);
         leg.Draw();
-        cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter+1)); 
+        cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter+1)); 
         cv_slice->Delete();
         cv_slice = new TCanvas("","",800*2,450*2);
         cv_slice->Divide(2,2);
@@ -207,12 +207,12 @@ void plot_res_slices(bool single=false, char* Std_name="MassResolutionStd.root",
 
 
 //function to plot the distribution of the resolution bin per bin
-void compare_distr_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_name2="MassResolutionKFChi2_2.root",char* KF_name3="MassResolutionKFChi2_5.root",char* KF_name4="MassResolutionKFChi2_50.root",char* output_name="distr_chi2.root", char* pdf_file="distr_chi2.pdf", char* folder_name="distr_chi2")
+void compare_distr_chi2(TString KF_name1="MassResolutionKFChi2_1.root",TString KF_name2="MassResolutionKFChi2_2.root",TString KF_name3="MassResolutionKFChi2_5.root",TString KF_name4="MassResolutionKFChi2_50.root",TString output_name="distr_chi2.root", TString pdf_file="distr_chi2.pdf", TString folder_name="distr_chi2")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[4] = {"#chi^{2}/NDF<1","#chi^{2}/NDF<2","#chi^{2}/NDF<5","#chi^{2}/NDF<50"};
@@ -223,10 +223,10 @@ void compare_distr_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_na
   const int begin[8]={2,1,2,2,1,1,1,1};
   const int canvas_index[12]={1,2,3,4,1,2,3,4,1,2,3,4};
   TFile* input_file[4];
-  input_file[0] = new TFile(KF_name1);
-  input_file[1] = new TFile(KF_name2);
-  input_file[2] = new TFile(KF_name3);
-  input_file[3] = new TFile(KF_name4);
+  input_file[0] = new TFile(KF_name1.Data());
+  input_file[1] = new TFile(KF_name2.Data());
+  input_file[2] = new TFile(KF_name3.Data());
+  input_file[3] = new TFile(KF_name4.Data());
   TFile output_file(output_name,"RECREATE");
   TCanvas* cv_slice;
   TH2D* plot2d[4][1];
@@ -270,7 +270,7 @@ void compare_distr_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_na
           counter++;
           cv_slice->cd(1);
           leg.Draw();
-          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter)); 
+          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter)); 
           cv_slice->Delete();
           cv_slice = new TCanvas("","",800*2,450*2);
           cv_slice->Divide(2,2);
@@ -288,33 +288,33 @@ void compare_distr_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_na
           */
         }
         //if(iBin==2)
-        //  cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter));
+        //  cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter));
         //leg->Draw();
         //std::cout<<iBin<<"\n";
       }
       cv_slice->cd(1);
       leg.Draw();
-      cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter+1)); 
+      cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter+1)); 
       cv_slice->Delete();
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
-      cv_slice->Write();//Print(Form("%s/Slice_%s_%c.pdf",folder_name,lHistName[0],lAM[0])); 
+      cv_slice->Write();//Print(Form("%s/Slice_%s_%c.pdf",folder_name.Data(),lHistName[0],lAM[0])); 
       cv_slice->Delete();
-      //cv_slice->Print(Form("%s/Slice_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      //cv_slice->Print(Form("%s/Slice_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
     }
   }   
 
-  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf]",folder_name,lHistName[0],lAM[0]));
+  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf]",folder_name.Data(),lHistName[0],lAM[0]));
 }
 
 
 //function to plot the distribution of the resolution bin per bin
-void distr_KF_O2(char* KF_name="MassResolutionKFChi2_2.root",char* O2_name="MassResolutionO2.root",bool single=false, char* output_name="distr_KF_O2.root", char* pdf_file="distr_KF_O2.pdf", char* folder_name="distr_KF_O2")
+void distr_KF_O2(TString KF_name="MassResolutionKFChi2_2.root",TString O2_name="MassResolutionO2.root",bool single=false, TString output_name="distr_KF_O2.root", TString pdf_file="distr_KF_O2.pdf", TString folder_name="distr_KF_O2")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[2] = {"O^{2} vertexer","Kalman filter #chi^{2}/NDF<2"};
@@ -325,9 +325,9 @@ void distr_KF_O2(char* KF_name="MassResolutionKFChi2_2.root",char* O2_name="Mass
   const int begin[8]={2,1,2,2,1,1,1,1};
   const int canvas_index[12]={1,2,3,4,1,2,3,4,1,2,3,4};
   TFile* input_file[2];
-  input_file[0] = new TFile(O2_name);
-  input_file[1] = new TFile(KF_name);
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  input_file[0] = new TFile(O2_name.Data());
+  input_file[1] = new TFile(KF_name.Data());
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
 
   TCanvas* cv_slice;
   TH2D* plot2d[4][1];
@@ -339,7 +339,7 @@ void distr_KF_O2(char* KF_name="MassResolutionKFChi2_2.root",char* O2_name="Mass
     set_style(help,iFile);
     leg.AddEntry(help,lTitle[iFile],"lp");  
   } 
-  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf[",folder_name,lHistName[0],lAM[0])); 
+  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf[",folder_name.Data(),lHistName[0],lAM[0])); 
   //antimatter and matter
   for(int iMat=0; iMat<2; iMat++){
     for(int iDist=0;iDist<8;iDist++){
@@ -369,7 +369,7 @@ void distr_KF_O2(char* KF_name="MassResolutionKFChi2_2.root",char* O2_name="Mass
           counter++;
           cv_slice->cd(1);
           leg.Draw();
-          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter)); 
+          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter)); 
           cv_slice->Delete();
           cv_slice = new TCanvas("","",800*2,450*2);
           cv_slice->Divide(2,2);
@@ -385,24 +385,24 @@ void distr_KF_O2(char* KF_name="MassResolutionKFChi2_2.root",char* O2_name="Mass
         }
         if(single){
           counter++;
-          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter)); 
+          cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter)); 
           leg.Draw();
         }
       }
       if(!single){
         cv_slice->cd(1);
         leg.Draw();
-        cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name,lHistName[iDist],lAM[iMat],counter+1)); 
+        cv_slice->Print(Form("%s/Slice_%s_%c_%i.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat],counter+1)); 
       }
       cv_slice->Delete();
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
-      cv_slice->Write();//Print(Form("%s/Slice_%s_%c.pdf",folder_name,lHistName[0],lAM[0])); 
+      cv_slice->Write();//Print(Form("%s/Slice_%s_%c.pdf",folder_name.Data(),lHistName[0],lAM[0])); 
       cv_slice->Delete();
-      //cv_slice->Print(Form("%s/Slice_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      //cv_slice->Print(Form("%s/Slice_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
     }
   }   
 
-  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf]",folder_name,lHistName[0],lAM[0]));
+  //cv_slice.Print(Form("%s/Slice_%s_%c.pdf]",folder_name.Data(),lHistName[0],lAM[0]));
 }
 

@@ -1,11 +1,13 @@
 #include "utils.h"
+#include <TString.h>
+
 //function to check the difference of adding the particles in a different order
-void permutation_difference(char* KF_name1="MassResolution.root",char* KF_name2="MassResolution.root",char* output_name="difference.root", char* pdf_file="difference.pdf", char* folder_name="difference")
+void permutation_difference(TString KF_name1="MassResolution.root",TString KF_name2="MassResolution.root",TString output_name="difference.root", TString pdf_file="difference.pdf", TString folder_name="difference")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[2] = {"de-pr-pi","pi-pr-de"};
@@ -16,9 +18,9 @@ void permutation_difference(char* KF_name1="MassResolution.root",char* KF_name2=
   const int begin[8]={2,1,2,2,1,1,1,1};
   const int canvas_index[12]={1,2,3,4,1,2,3,4,1,2,3,4};
   TFile* input_file[2];
-  input_file[0] = new TFile(KF_name1);
-  input_file[1] = new TFile(KF_name2);
-  TFile output_file(output_name,"RECREATE");
+  input_file[0] = new TFile(KF_name1.Data());
+  input_file[1] = new TFile(KF_name2.Data());
+  TFile output_file(output_name.Data(),"RECREATE");
 
   TCanvas* cv_slice;
   TH2D* plot2d[2][1];
@@ -54,14 +56,14 @@ void permutation_difference(char* KF_name1="MassResolution.root",char* KF_name2=
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
 
-      cv_slice->Print(Form("%s/Difference_%s_%c.pdf[",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Difference_%s_%c.pdf[",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       int counter=0;
       for(int iBin=begin[iDist];iBin<=10;iBin++){
         if(canvas_index[iBin-begin[iDist]]==1 && iBin!=begin[iDist]){
           counter++;
           cv_slice->cd(1);
           pinfo.Draw();
-          cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
+          cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
           cv_slice->Delete();
           cv_slice = new TCanvas("","",800*2,450*2);
           cv_slice->Divide(2,2);
@@ -72,24 +74,24 @@ void permutation_difference(char* KF_name1="MassResolution.root",char* KF_name2=
       }
       cv_slice->cd(1);
       pinfo.Draw();
-      cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv_slice->Delete();
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
       cv_slice->Write();
       cv_slice->Delete();
-      cv_slice->Print(Form("%s/Difference_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Difference_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
     }
   }   
 
 }
 
-void permutation_comparison(char* KF_name1="MassResolution.root",char* KF_name2="MassResolution.root",char* output_name="comparison.root", char* pdf_file="comparison.pdf", char* folder_name="comparison")
+void permutation_comparison(TString KF_name1="MassResolution.root",TString KF_name2="MassResolution.root",TString output_name="comparison.root", TString pdf_file="comparison.pdf", TString folder_name="comparison")
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[2] = {"de-pr-pi","pi-pr-de"};
@@ -100,9 +102,9 @@ void permutation_comparison(char* KF_name1="MassResolution.root",char* KF_name2=
   const int begin[8]={2,1,2,2,1,1,1,1};
   const int canvas_index[12]={1,2,3,4,1,2,3,4,1,2,3,4};
   TFile* input_file[2];
-  input_file[0] = new TFile(KF_name1);
-  input_file[1] = new TFile(KF_name2);
-  TFile output_file(output_name,"RECREATE");
+  input_file[0] = new TFile(KF_name1.Data());
+  input_file[1] = new TFile(KF_name2.Data());
+  TFile output_file(output_name.Data(),"RECREATE");
 
   TCanvas* cv_slice;
   TH2D* plot2d[2][1];
@@ -139,14 +141,14 @@ void permutation_comparison(char* KF_name1="MassResolution.root",char* KF_name2=
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
 
-      cv_slice->Print(Form("%s/Difference_%s_%c.pdf[",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Difference_%s_%c.pdf[",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       int counter=0;
       for(int iBin=begin[iDist];iBin<=10;iBin++){
         if(canvas_index[iBin-begin[iDist]]==1 && iBin!=begin[iDist]){
           counter++;
           cv_slice->cd(1);
           leg.Draw();
-          cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
+          cv_slice->Print(Form("%s/Difference_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
           cv_slice->Delete();
           cv_slice = new TCanvas("","",800*2,450*2);
           cv_slice->Divide(2,2);
@@ -158,13 +160,13 @@ void permutation_comparison(char* KF_name1="MassResolution.root",char* KF_name2=
       }
       cv_slice->cd(1);
       leg.Draw();
-      cv_slice->Print(Form("%s/Comparison_%s_%c.pdf",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Comparison_%s_%c.pdf",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
       cv_slice->Delete();
       cv_slice = new TCanvas("","",800*2,450*2);
       cv_slice->Divide(2,2);
       cv_slice->Write();
       cv_slice->Delete();
-      cv_slice->Print(Form("%s/Comparison_%s_%c.pdf]",folder_name,lHistName[iDist],lAM[iMat])); 
+      cv_slice->Print(Form("%s/Comparison_%s_%c.pdf]",folder_name.Data(),lHistName[iDist],lAM[iMat])); 
     }
   }   
 
@@ -172,10 +174,10 @@ void permutation_comparison(char* KF_name1="MassResolution.root",char* KF_name2=
 
 //function to check the topological difference of the second peak
 //list of functions to compare the topology for ctrec>ctgen and ctrec<ctgen
-void compare_sides(char* input_name="selector_resultsKF.root", char* output_name="sides_comparison.root", char* pdf_file="sides_comparison.pdf", char* folder_name="side",bool norm=true)
+void compare_sides(TString input_name="selector_resultsKF.root", TString output_name="sides_comparison.root", TString pdf_file="sides_comparison.pdf", TString folder_name="side",bool norm=true)
 {
   gStyle->SetOptStat(0);  
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   TFile input_file(input_name);
   const char lRL[3]{"RL"};
@@ -183,7 +185,7 @@ void compare_sides(char* input_name="selector_resultsKF.root", char* output_name
   const char* lSide[2] = {"ct_{rec}>ct_{gen}","ct_{rec}<ct_{gen}"};
   TH1D* histVert[2][2];
   TH1D* hist[7][3][2];
-  TFile output_file(Form("%s/%s",folder_name,output_name),"recreate");
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"recreate");
 
   TLegend legend(0.2,0.2,0.4,0.4);
   for(int iFile=0; iFile<2; iFile++){
@@ -209,7 +211,7 @@ void compare_sides(char* input_name="selector_resultsKF.root", char* output_name
   }
   //TFile output_file(Form("%s/%s",folder_name,input_name),"recreate");
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s/%s[",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name.Data(),pdf_file.Data()));
   //not DCA 
   for(int iHist=0; iHist<2; iHist++){
     for(int iSide=0; iSide<2; iSide++){
@@ -223,7 +225,7 @@ void compare_sides(char* input_name="selector_resultsKF.root", char* output_name
     histVert[iHist][0]->Draw("");
     histVert[iHist][1]->Draw("SAME");
     legend.Draw();
-    cv.Print(Form("%s/%s",folder_name,pdf_file));
+    cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data()));
     cv.Write();
   }
   //DCA
@@ -240,21 +242,21 @@ void compare_sides(char* input_name="selector_resultsKF.root", char* output_name
       hist[iHist][iSpecies][0]->Draw("");
       hist[iHist][iSpecies][1]->Draw("SAME");
       legend.Draw();
-      cv.Print(Form("%s/%s",folder_name,pdf_file));
+      cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data()));
       cv.Write();
     }
   } 
-  cv.Print(Form("%s/%s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name.Data(),pdf_file.Data()));
 }
 
 
 //this function compare the two distribution dividing the two normalized sides
-void divide_sides(char* input_name="selector_resultsKF.root", char* output_name="rates_comparison.root", char* pdf_file="rates_comparison.pdf", char* folder_name="rate")
+void divide_sides(TString input_name="selector_resultsKF.root", TString output_name="rates_comparison.root", TString pdf_file="rates_comparison.pdf", TString folder_name="rate")
 {
   gStyle->SetOptStat(0);  
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
-  TFile input_file(input_name);
+  TFile input_file(input_name.Data());
   const char lRL[3]{"RL"};
   const char *lSpecies[3]{"d", "p", "pi"};
   const char* lSide[2] = {"ct_{rec}>ct_{gen}","ct_{rec}<ct_{gen}"};
@@ -279,7 +281,7 @@ void divide_sides(char* input_name="selector_resultsKF.root", char* output_name=
 
   //TFile output_file(Form("%s/%s",folder_name,input_name),"recreate");
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s/%s[",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name.Data(),pdf_file.Data()));
   //not DCA 
   for(int iHist=0; iHist<2; iHist++){
     for(int iSide=0; iSide<2; iSide++){
@@ -290,7 +292,7 @@ void divide_sides(char* input_name="selector_resultsKF.root", char* output_name=
     histVert[iHist][0]->Divide(histVert[iHist][1]);
     SetRateErrors(histVert[iHist][0],histVert[iHist][1]);
     histVert[iHist][0]->Draw("");
-    cv.Print(Form("%s/%s",folder_name,pdf_file));
+    cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data()));
   }
   //DCA
   for(int iHist=0; iHist<7; iHist++){
@@ -302,8 +304,8 @@ void divide_sides(char* input_name="selector_resultsKF.root", char* output_name=
       }
       hist[iHist][iSpecies][0]->Divide(hist[iHist][iSpecies][1]);
       hist[iHist][iSpecies][0]->Draw("");
-      cv.Print(Form("%s/%s",folder_name,pdf_file));
+      cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data()));
     }
   } 
-  cv.Print(Form("%s/%s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name.Data(),pdf_file.Data()));
 }

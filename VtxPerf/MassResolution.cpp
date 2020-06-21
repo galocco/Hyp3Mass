@@ -5,14 +5,14 @@
 #include <TH2D.h>
 #include <TH3D.h>
 #include "Hyp3FindConfig.h"
+#include <TString.h>
 
-
-void MassResolution(char * input_name = "selector_results.root",char * output_name = "MassResolutio.root",bool fit_slice=true)
+void MassResolution(TString input_name = "selector_results.root",TString output_name = "MassResolution.root",bool fit_slice=true)
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(1);
   gStyle->SetOptTitle(0);
-  TFile input_file(input_name);
+  TFile input_file(input_name.Data());
 
   const char  lAM[2] = {'A','M'};
   const char* lProjSet[2] = {"zx","zy"};
@@ -24,7 +24,7 @@ void MassResolution(char * input_name = "selector_results.root",char * output_na
   const char* lVar[8] = {"m","m","p_{T}","p","ct","x","y","z"};
   const char* lQuant[8] = {"p_{T} (GeV/#it{c})","#it{c}t (cm)","p_{T} (GeV/#it{c})","p (GeV/#it{c})","#it{c}t (cm)","x (cm)","y (cm)","z (cm)"};
 
-  TFile output_file(output_name,"RECREATE");
+  TFile output_file(output_name.Data(),"RECREATE");
   const char *lDir[6]={"TH2Plot","mean_value","stddev","int_distr","multi_plots","chi2"};
   TDirectory* subdir[6];
   int ndir = (fit_slice) ? 6 : 5;

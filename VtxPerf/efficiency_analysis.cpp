@@ -7,14 +7,15 @@
 #include <string.h>
 #include "Hyp3FindConfig.h"
 #include "utils.h"
+#include "TString.h"
 void ordered_indexes(int ,int []);
 
-void selector_efficiencies(char * input_name = "selector_results.root",char * output_name = "efficiency.root",char* pdf_file = "efficiency_plots.pdf",char * folder_name = "plot_folder")
+void selector_efficiencies(TString input_name = "selector_results.root",TString output_name = "efficiency.root",TString pdf_file = "efficiency_plots.pdf",TString folder_name = "plot_folder")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lProj[2] = {"pT","ct"};
@@ -23,16 +24,18 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   const char* lMeasure[3] = {"Efficiency","FakeRate","CloneRate"};
   const char* lProjMeas[3] = {"Rec","Fake","Clones"};
 
-  TFile input_file(input_name);
-  TFile gen_file("Output.root");
+  TFile input_file(input_name.Data());
+  TFile gen_file("../AnalysisResults.root");
+  TList* list_gen = (TList*) gen_file.Get("Hyp3FindTask_summary");
   TH3D* fHistGen3D[2];
-  fHistGen3D[0] = (TH3D*) gen_file.Get("Hyp3FindTask_summary/fHistGeneratedPtVsYVsCentralityHypTrit");
-  fHistGen3D[1] = (TH3D*) gen_file.Get("Hyp3FindTask_summary/fHistGeneratedPtVsYVsCentralityAntiHypTrit");
-  int NHyp3[2];
-  NHyp3[0] = 4339520;//fHistGen3D[0]->GetEntries();
-  NHyp3[1] = 4339520;//fHistGen3D[1]->GetEntries();
-  const float cthyp=7.25;
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  fHistGen3D[0] = (TH3D*) list_gen->FindObject("fHistGeneratedPtVsCtVsCentralityHypTrit3");
+  fHistGen3D[1] = (TH3D*) list_gen->FindObject("fHistGeneratedPtVsCtVsCentralityAntiHypTrit3");
+  //get the blastwave and normalize it
+  TFile bw_file(bw_name.Data());
+  TF1* blast_wave = (TF1*) bw_file.Get(blast_wave_name);
+  float max_bw = blast_wave->GetMaximum(0,10);
+
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
   const int ndir=5;
   TDirectory* subdir;
   for(int iVar=0; iVar<3; iVar++){
@@ -47,22 +50,25 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
   TH2D* fHistRecProj = nullptr;
   TH1D* fHistRec[3][kNvariations] = {{nullptr}};
   TH2D* fHistGenTot = nullptr;
-  TH1D* fHistGen[2] = {nullptr}; //for pt and ct
-  fHistGen[0] = new TH1D("fHistGetPt","",10,0,10);
-  fHistGen[1] = new TH1D("fHistGetCt","",10,0,50); 
+  TH1D* fHistGen[2] = {nullptr}; //for pt and ct 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s/%s[",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name.Data(),pdf_file.Data()));
   //array for the indexes of the cuts, with the cuts ordered from the tighter to the looser
   int ordered_cuts[kNvariations];
   //matter or antimatter
   for(int iMat=0; iMat<2; iMat++){
     // histograms of the genereted hypetritons
-    //fHistGenTot = (TH2D*) input_file.Get(Form("fHistGen_%c",lAM[iMat]));
-    for(int iBin=1; iBin<=10; iBin++){
-      fHistGen[0]->SetBinContent(iBin,NHyp3[iMat]/10.);
-      fHistGen[1]->SetBinContent(iBin,NHyp3[iMat]*(TMath::Exp(-5.*(iBin-1)/cthyp)-TMath::Exp(-5.*iBin/cthyp)*cthyp/5)); 
-    }
+    fHistGen[0] = (TH1D*)fHistGen3D[iMat]->ProjectionX();//pt
+    fHistGen[1] = (TH1D*)fHistGen3D[iMat]->ProjectionY();//ct
+    //the gen hyps are flat in pT -> they must be scale with the true distribution
+    fHistGen[0]->Multiply(blast_wave,1./max_bw);//pt
+    fHistGen[1]->Scale(blast_wave->Integral(0,10)/max_bw);//ct
 
+    fHistGen[0]->Draw();
+    cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
+    fHistGen[1]->Draw();
+    cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
+    TString rec_string = "Rec";
     //projection on pt or ct
     for(int iProj=0; iProj<2; iProj++){
       //variable of the cut
@@ -77,7 +83,7 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
           //different cuts
           for(auto iCut : ordered_cuts){
             fHistRec[iMeas][iCut] = (TH1D*)fHistRecProj->ProjectionX(Form("fHist%s_%s_%s_cut_%.1f_%c",lProjMeas[iMeas],lVarName[iVar],lProj[iProj],kCuts[iVar][iCut][0],lAM[iMat]),iCut+1,iCut+1);
-            if(lProjMeas[iMeas]=="Rec"){
+            if(lProjMeas[iMeas]==rec_string.Data()){
               fHistRec[iMeas][iCut]->Divide(fHistGen[iProj]);
               SetEfficiencyErrors(fHistRec[iMeas][iCut],fHistGen[iProj]);
               fHistRec[iMeas][iCut]->GetYaxis()->SetTitle("efficiency");
@@ -98,27 +104,27 @@ void selector_efficiencies(char * input_name = "selector_results.root",char * ou
           rainbow_plot(fHistRec[iMeas],cv,Form("RainbowPlot_%s_%s_%s_%c",lVarName[iVar],lMeasure[iMeas],lProj[iProj],lAM[iMat]),true);          
           output_file.cd();
           cv.Write();          
-          cv.Print(Form("%s/%s",folder_name,pdf_file)); 
+          cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
           cv.Clear();
         }
         //plot of the three measurements in a single canvas
         multirainbow_plot(fHistRec,cv,Form("MultiRainbowPlot_%s_%s_%c",lVarName[iVar],lProj[iProj],lAM[iMat]),true);
-        cv.Print(Form("%s/%s",folder_name,pdf_file));
+        cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data()));
         cv.Clear();
       }
     }
   }
-  cv.Print(Form("%s/%s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name.Data(),pdf_file.Data()));
 }
 
 
 ///
-void compare_efficiencies(char* Std_name="efficiencyStd.root", char* KF_name="efficiencyKF.root", char* O2_name="efficiencyO2.root", char* output_name="efficiency_comparison.root", char* pdf_file="efficiency_comparison.pdf", char* folder_name="nome")
+void compare_efficiencies(TString Std_name="plot_folderStd/efficiencyStd.root", TString KF_name="plot_folderKF/efficiencyKF.root", TString O2_name="plot_folderO2/efficiencyO2.root", TString output_name="efficiency_comparison.root", TString pdf_file="efficiency_comparison.pdf", TString folder_name="eff_comparsion")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lProj[2] = {"pT","ct"};
@@ -127,14 +133,14 @@ void compare_efficiencies(char* Std_name="efficiencyStd.root", char* KF_name="ef
   const char* lTitle[3] = {"Standard vertexer","O^{2} vertexer","Kalman Filter"};
 
   TFile* input_file[3];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(O2_name);
-  input_file[2] = new TFile(KF_name);
-  TFile output_file(output_name,"RECREATE");
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[2] = new TFile(KF_name.Data());
+  TFile output_file(output_name.Data(),"RECREATE");
   TH1D* fHist[3][3];//[measurement(eff,fake,clones)][vertexer]
 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s[",pdf_file));
+  cv.Print(Form("%s[",pdf_file.Data()));
   //antimatter or matter
   for(int iMat=0; iMat<2; iMat++){
     //pt or ct
@@ -154,27 +160,27 @@ void compare_efficiencies(char* Std_name="efficiencyStd.root", char* KF_name="ef
         
         output_file.cd();
         cv.Write();          
-        cv.Print(Form("%s",pdf_file)); 
+        cv.Print(Form("%s",pdf_file.Data())); 
         cv.Clear();
       }
       //plots the all the measurements in the same canvas
       multirainbow_plot(fHist,cv,Form("MultiRainbowPlot_%s_%c",lProj[iProj],lAM[iMat]),true);
       cv.Write();          
-      cv.Print(Form("%s",pdf_file)); 
+      cv.Print(Form("%s",pdf_file.Data())); 
       cv.Clear();    
     }
   }
-  cv.Print(Form("%s]",pdf_file));
+  cv.Print(Form("%s]",pdf_file.Data()));
 }
 
-void compare_resolutions(char* Std_name="MassResolutionStd.root", char* KF_name="MassResolutionKF.root", char* O2_name="MassResolutionO2.root", char* output_name="resolution_comparison.root", char* pdf_file="resolution_comparison.pdf", char* folder_name="resolutionAll")
+void compare_resolutions(TString Std_name="MassResolutionStd.root", TString KF_name="MassResolutionKF.root", TString O2_name="MassResolutionO2.root", TString output_name="resolution_comparison.root", TString pdf_file="resolution_comparison.pdf", TString folder_name="resolutionAll")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[3] = {"Standard vertexer","O^{2} vertexer","Kalman Filter #chi^{2}/NDF<50"};
@@ -185,14 +191,14 @@ void compare_resolutions(char* Std_name="MassResolutionStd.root", char* KF_name=
   const char* lDir[2] = {"mean_value","stddev"};
 
   TFile* input_file[3];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(O2_name);
-  input_file[2] = new TFile(KF_name);
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[2] = new TFile(KF_name.Data());
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
   TH1D* fHist[2][3];//[mean/stddev][vertexer]
 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s/%s[",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name.Data(),pdf_file.Data()));
   //antimatter and matter
   for(int iMat=0; iMat<2; iMat++){
     //all the resolutions 
@@ -210,25 +216,24 @@ void compare_resolutions(char* Std_name="MassResolutionStd.root", char* KF_name=
         rainbow_plot(fHist[iMeas],cv,Form("RainbowPlot_%s_%s_%c",lMeasure[iMeas],lRes[iRes],lAM[iMat]),true);
         output_file.cd();
         cv.Write();          
-        cv.Print(Form("%s/%s",folder_name,pdf_file)); 
+        cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
         cv.Clear();
       }
       multirainbow_plot(fHist,cv,Form("MultiRainbowPlot_%s_%c",lRes[iRes],lAM[iMat]),true);
       cv.Write();          
-      cv.Print(Form("%s/%s",folder_name,pdf_file)); 
+      cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
       cv.Clear();    
     }
   }
-  cv.Print(Form("%s/%s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name.Data(),pdf_file.Data()));
 }
-void compare_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_name2="MassResolutionKFChi2_2.root",char* KF_name3="MassResolutionKFChi2_5.root",char* KF_name4="MassResolutionKFChi2_50.root",char* output_name="chi2_comparison.root", char* pdf_file="chi2_comparison.pdf", char* folder_name="chi2")
+void compare_chi2(TString KF_name1="MassResolutionKFChi2_1.root",TString KF_name2="MassResolutionKFChi2_2.root",TString KF_name3="MassResolutionKFChi2_5.root",TString KF_name4="MassResolutionKFChi2_50.root",TString output_name="chi2_comparison.root", TString pdf_file="chi2_comparison.pdf", TString folder_name="chi2")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
-  
-  //gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[4] = {"#chi^{2}/NDF<1","#chi^{2}/NDF<2","#chi^{2}/NDF<5","#chi^{2}/NDF<50"};
@@ -239,10 +244,10 @@ void compare_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_name2="M
   const char* lDir[2] = {"mean_value","stddev"};
 
   TFile* input_file[4];
-  input_file[0] = new TFile(KF_name1);
-  input_file[1] = new TFile(KF_name2);
-  input_file[2] = new TFile(KF_name3);
-  input_file[3] = new TFile(KF_name4);
+  input_file[0] = new TFile(KF_name1.Data());
+  input_file[1] = new TFile(KF_name2.Data());
+  input_file[2] = new TFile(KF_name3.Data());
+  input_file[3] = new TFile(KF_name4.Data());
   TFile output_file(output_name,"RECREATE");
   TH1D* fHist[2][4];//[mean/stddev][cuts]
 
@@ -255,7 +260,7 @@ void compare_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_name2="M
   } 
 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s[",pdf_file));
+  cv.Print(Form("%s[",pdf_file.Data()));
   //antimatter and matter
   for(int iMat=0; iMat<2; iMat++){
     //all the resolutions 
@@ -275,28 +280,28 @@ void compare_chi2(char* KF_name1="MassResolutionKFChi2_1.root",char* KF_name2="M
         leg.Draw("SAME");
         output_file.cd();
         cv.Write();          
-        cv.Print(Form("%s",pdf_file)); 
+        cv.Print(Form("%s",pdf_file.Data())); 
         cv.Clear();
       }
       multirainbow_plot(fHist,cv,Form("MultiRainbowPlot_%s_%c",lRes[iRes],lAM[iMat]),false);
       cv.cd(1);
       leg.Draw("SAME");
       cv.Write();          
-      cv.Print(Form("%s",pdf_file)); 
+      cv.Print(Form("%s",pdf_file.Data())); 
       cv.Clear();    
     }
   }
-  cv.Print(Form("%s]",pdf_file));
+  cv.Print(Form("%s]",pdf_file.Data()));
 }
 
-void compare_KF_O2(char* KF_name="MassResolutionKFChi2_1.root", char* O2_name="MassResolutionO2.root", char* output_name="vertexer_comparison1.root", char* pdf_file="vertexer_comparison1.pdf", char* folder_name="KF_O2_1")
+void compare_KF_O2(TString KF_name="MassResolutionKFChi2_1.root", TString O2_name="MassResolutionO2.root", TString output_name="vertexer_comparison1.root", TString pdf_file="vertexer_comparison1.pdf", TString folder_name="KF_O2_1")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   gStyle->SetPadRightMargin(0.1); 
   gStyle->SetPadLeftMargin(0.15);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char  lAM[2] = {'A','M'};
   const char* lTitle[2] = {"O^{2} vertexer","Kalman Filter #chi^{2}/NDF<1"};
@@ -307,13 +312,13 @@ void compare_KF_O2(char* KF_name="MassResolutionKFChi2_1.root", char* O2_name="M
   const char* lDir[2] = {"mean_value","stddev"};
 
   TFile* input_file[2];
-  input_file[0] = new TFile(O2_name);
-  input_file[1] = new TFile(KF_name);
-  TFile output_file(Form("%s/%s",folder_name,output_name),"RECREATE");
+  input_file[0] = new TFile(O2_name.Data());
+  input_file[1] = new TFile(KF_name.Data());
+  TFile output_file(Form("%s/%s",folder_name.Data(),output_name.Data()),"RECREATE");
   TH1D* fHist[2][2];//[mean/stddev][vertexer]
 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s/%s[",folder_name,pdf_file));
+  cv.Print(Form("%s/%s[",folder_name.Data(),pdf_file.Data()));
   //antimatter and matter
   for(int iMat=0; iMat<2; iMat++){
     //all the resolutions 
@@ -331,20 +336,20 @@ void compare_KF_O2(char* KF_name="MassResolutionKFChi2_1.root", char* O2_name="M
         rainbow_plot(fHist[iMeas],cv,Form("RainbowPlot_%s_%s_%c",lMeasure[iMeas],lRes[iRes],lAM[iMat]),true);
         output_file.cd();
         cv.Write();          
-        cv.Print(Form("%s/%s",folder_name,pdf_file)); 
+        cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
         cv.Clear();
       }
       multirainbow_plot(fHist,cv,Form("MultiRainbowPlot_%s_%c",lRes[iRes],lAM[iMat]),true);
       cv.Write();          
-      cv.Print(Form("%s/%s",folder_name,pdf_file)); 
+      cv.Print(Form("%s/%s",folder_name.Data(),pdf_file.Data())); 
       cv.Clear();    
     }
   }
-  cv.Print(Form("%s/%s]",folder_name,pdf_file));
+  cv.Print(Form("%s/%s]",folder_name.Data(),pdf_file.Data()));
 }
 
 
-void compare_distribution(char* Std_name="MassResolutionStd.root", char* KF_name="MassResolutionKF.root", char* O2_name="MassResolutionO2.root", char* output_name="distr_comparison.root", char* pdf_file="distr_comparison.pdf", char* folder_name="nome")
+void compare_distribution(TString Std_name="MassResolutionStd.root", TString KF_name="MassResolutionKF.root", TString O2_name="MassResolutionO2.root", TString output_name="distr_comparison.root", TString pdf_file="distr_comparison.pdf", TString folder_name="nome")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
@@ -358,14 +363,14 @@ void compare_distribution(char* Std_name="MassResolutionStd.root", char* KF_name
   const char* lRes[8] = {"fMass_pT_Int","fPt_pT_Int","fP_p_Int","fCt_ct_Int","fX_X_Int","fY_Y_Int","fZ_Z_Int"};
 
   TFile* input_file[3];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(O2_name);
-  input_file[2] = new TFile(KF_name);
-  TFile output_file(output_name,"RECREATE");
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(O2_name.Data());
+  input_file[2] = new TFile(KF_name.Data());
+  TFile output_file(output_name.Data(),"RECREATE");
   TH1D* fHist[3][3];//[mean/stddev][vertexer]
 
   TCanvas cv("","",800,450);
-  cv.Print(Form("%s[",pdf_file));
+  cv.Print(Form("%s[",pdf_file.Data()));
   TPaveLabel *titlea = new TPaveLabel(.11,.95,.35,.99,"Antimatter","brndc");
   TPaveLabel *titlem = new TPaveLabel(.11,.95,.35,.99,"Antimatter","brndc");
   
@@ -397,7 +402,7 @@ void compare_distribution(char* Std_name="MassResolutionStd.root", char* KF_name
         cv.SetTitle("Matter");
       
       cv.Write();          
-      cv.Print(Form("%s",pdf_file)); 
+      cv.Print(Form("%s",pdf_file.Data())); 
       cv.Clear(); 
     }   
   }
@@ -412,7 +417,7 @@ void compare_distribution(char* Std_name="MassResolutionStd.root", char* KF_name
     fHist[0][iFile]->SetTitle(lTitle[iFile]);
   }
   set_range(fHist[0]);
-  cv.Print(Form("%s]",pdf_file));
+  cv.Print(Form("%s]",pdf_file.Data()));
 
   rainbow_plot(fHist[0],cv,Form("MultiRainbowPlotSlice_%c",lAM[0]),true);
   cv.cd();
@@ -456,16 +461,16 @@ void ordered_indexes(int Var,int kCutsOrdered[]){
 }
 
 //function to compare efficiencies
-void compare_trees(char * findable_name = "efficiencyKF.root",char * task_name = "KFResults.root",char * pdf_file = "compare_trees.pdf")
+void compare_trees(TString findable_name = "efficiencyKF.root",TString task_name = "KFResults.root",TString pdf_file = "compare_trees.pdf")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
-  TFile findable_file(findable_name);
-  TFile task_file(task_name);
+  TFile findable_file(findable_name.Data());
+  TFile task_file(task_name.Data());
   const char lAM[3]{"AM"};
   const char* lName[2]={"Antimatter","Matter"};
   TCanvas cv("","",800*2,450);
-  cv.Print(Form("%s[",pdf_file));
+  cv.Print(Form("%s[",pdf_file.Data()));
   TH1D* histos[2][2];//[eff (ct-pt)][tree]
   //matter and antimatter
   for(int iMat=0;iMat<2;iMat++){
@@ -478,26 +483,26 @@ void compare_trees(char * findable_name = "efficiencyKF.root",char * task_name =
     set_range(histos[0]);
     set_range(histos[1]);
     multirainbow_plot(histos,cv,Form("efficiency_%c",lAM[iMat]),true,"PLC PMC");
-    cv.Print(Form("%s",pdf_file));
+    cv.Print(Form("%s",pdf_file.Data()));
     cv.Clear();
   }
-  cv.Print(Form("%s]",pdf_file));
+  cv.Print(Form("%s]",pdf_file.Data()));
 }
 
-void compare_times(char* Std_name="selector_resultsStd.root", char* KF_name1="selector_resultsKFChi2_50.root", char* KF_name2="selector_resultsKFChi2_2.root", char* O2_name="selector_resultsO2.root", char* output_name="time_comparison.root", char* pdf_file="time_comparison.pdf", char* folder_name="nome")
+void compare_times(TString Std_name="selector_resultsStd.root", TString KF_name1="selector_resultsKFChi2_50.root", TString KF_name2="selector_resultsKFChi2_2.root", TString O2_name="selector_resultsO2.root", TString output_name="time_comparison.root", TString pdf_file="time_comparison.pdf", TString folder_name="nome")
 {
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
   
-  gSystem->Exec(Form("mkdir %s",folder_name));
+  gSystem->Exec(Form("mkdir %s",folder_name.Data()));
 
   const char* lTitle[4] = {"Standard vertexer","Kalman Filter #chi^{2}/NDF<50","Kalman Filter #chi^{2}/NDF<2","O^{2} vertexer"};
 
   TFile* input_file[4];
-  input_file[0] = new TFile(Std_name);
-  input_file[1] = new TFile(KF_name1);
-  input_file[2] = new TFile(KF_name2);
-  input_file[3] = new TFile(O2_name);
+  input_file[0] = new TFile(Std_name.Data());
+  input_file[1] = new TFile(KF_name1.Data());
+  input_file[2] = new TFile(KF_name2.Data());
+  input_file[3] = new TFile(O2_name.Data());
 
   TLine* line = new TLine(0.,1.,4.,1.);
   line->SetLineColor(2);
@@ -530,5 +535,5 @@ void compare_times(char* Std_name="selector_resultsStd.root", char* KF_name1="se
    //draw an axis on the right side
   axis->Draw("same");
   line->Draw("same");
-  cv.Print(Form("%s",pdf_file));
+  cv.Print(Form("%s",pdf_file.Data()));
 }
